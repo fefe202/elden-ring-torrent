@@ -1,0 +1,184 @@
+services:
+  peer1:
+    build:
+      context: ./peer
+    container_name: peer1
+    environment:
+    - PORT=5000
+    - DATA_DIR=/app/data
+    - KNOWN_PEERS=peer2:5000,peer3:5000,peer4:5000,peer5:5000,peer6:5000,peer7:5000,peer8:5000,peer9:5000,peer10:5000
+    - SELF_ID=peer1:5000
+    - ISP=isp_a
+    - REGION=region_a
+    - PEER_MODE=${PEER_MODE:-NAIVE}
+    volumes:
+    - ./data_peer1:/app/data
+    ports:
+    - 5001:5000
+    networks:
+    - p2p_net
+  peer2:
+    build:
+      context: ./peer
+    container_name: peer2
+    environment:
+    - PORT=5000
+    - DATA_DIR=/app/data
+    - KNOWN_PEERS=peer1:5000,peer3:5000,peer4:5000,peer5:5000,peer6:5000,peer7:5000,peer8:5000,peer9:5000,peer10:5000
+    - SELF_ID=peer2:5000
+    - ISP=isp_a
+    - REGION=region_a
+    - PEER_MODE=${PEER_MODE:-NAIVE}
+    volumes:
+    - ./data_peer2:/app/data
+    ports:
+    - 5002:5000
+    networks:
+    - p2p_net
+  peer3:
+    build:
+      context: ./peer
+    container_name: peer3
+    environment:
+    - PORT=5000
+    - DATA_DIR=/app/data
+    - KNOWN_PEERS=peer1:5000,peer2:5000,peer4:5000,peer5:5000,peer6:5000,peer7:5000,peer8:5000,peer9:5000,peer10:5000
+    - SELF_ID=peer3:5000
+    - ISP=isp_a
+    - REGION=region_a
+    - PEER_MODE=${PEER_MODE:-NAIVE}
+    volumes:
+    - ./data_peer3:/app/data
+    ports:
+    - 5003:5000
+    networks:
+    - p2p_net
+  peer4:
+    build:
+      context: ./peer
+    container_name: peer4
+    environment:
+    - PORT=5000
+    - DATA_DIR=/app/data
+    - KNOWN_PEERS=peer1:5000,peer2:5000,peer3:5000,peer5:5000,peer6:5000,peer7:5000,peer8:5000,peer9:5000,peer10:5000
+    - SELF_ID=peer4:5000
+    - ISP=isp_a
+    - REGION=region_a
+    - PEER_MODE=${PEER_MODE:-NAIVE}
+    volumes:
+    - ./data_peer4:/app/data
+    ports:
+    - 5004:5000
+    networks:
+    - p2p_net
+  peer5:
+    build:
+      context: ./peer
+    container_name: peer5
+    environment:
+    - PORT=5000
+    - DATA_DIR=/app/data
+    - KNOWN_PEERS=peer1:5000,peer2:5000,peer3:5000,peer4:5000,peer6:5000,peer7:5000,peer8:5000,peer9:5000,peer10:5000
+    - SELF_ID=peer5:5000
+    - ISP=isp_a
+    - REGION=region_a
+    - PEER_MODE=${PEER_MODE:-NAIVE}
+    volumes:
+    - ./data_peer5:/app/data
+    ports:
+    - 5005:5000
+    networks:
+    - p2p_net
+  peer6:
+    build:
+      context: ./peer
+    container_name: peer6
+    environment:
+    - PORT=5000
+    - DATA_DIR=/app/data
+    - KNOWN_PEERS=peer1:5000,peer2:5000,peer3:5000,peer4:5000,peer5:5000,peer7:5000,peer8:5000,peer9:5000,peer10:5000
+    - SELF_ID=peer6:5000
+    - ISP=isp_a
+    - REGION=region_a
+    - PEER_MODE=${PEER_MODE:-NAIVE}
+    volumes:
+    - ./data_peer6:/app/data
+    ports:
+    - 5006:5000
+    networks:
+    - p2p_net
+  peer7:
+    build:
+      context: ./peer
+    container_name: peer7
+    environment:
+    - PORT=5000
+    - DATA_DIR=/app/data
+    - KNOWN_PEERS=peer1:5000,peer2:5000,peer3:5000,peer4:5000,peer5:5000,peer6:5000,peer8:5000,peer9:5000,peer10:5000
+    - SELF_ID=peer7:5000
+    - ISP=isp_a
+    - REGION=region_a
+    - PEER_MODE=${PEER_MODE:-NAIVE}
+    volumes:
+    - ./data_peer7:/app/data
+    ports:
+    - 5007:5000
+    networks:
+    - p2p_net
+  peer8:
+    build:
+      context: ./peer
+    container_name: peer8
+    environment:
+    - PORT=5000
+    - DATA_DIR=/app/data
+    - KNOWN_PEERS=peer1:5000,peer2:5000,peer3:5000,peer4:5000,peer5:5000,peer6:5000,peer7:5000,peer9:5000,peer10:5000
+    - SELF_ID=peer8:5000
+    - ISP=isp_a
+    - REGION=region_a
+    - PEER_MODE=${PEER_MODE:-NAIVE}
+    volumes:
+    - ./data_peer8:/app/data
+    ports:
+    - 5008:5000
+    networks:
+    - p2p_net
+  peer9:
+    build:
+      context: ./peer
+    container_name: peer9
+    environment:
+    - PORT=5000
+    - DATA_DIR=/app/data
+    - KNOWN_PEERS=peer1:5000,peer2:5000,peer3:5000,peer4:5000,peer5:5000,peer6:5000,peer7:5000,peer8:5000,peer10:5000
+    - SELF_ID=peer9:5000
+    - ISP=isp_a
+    - REGION=region_a
+    - PEER_MODE=${PEER_MODE:-NAIVE}
+    volumes:
+    - ./data_peer9:/app/data
+    ports:
+    - 5009:5000
+    networks:
+    - p2p_net
+  peer10:
+    build:
+      context: ./peer
+    container_name: peer10
+    environment:
+    - PORT=5000
+    - DATA_DIR=/app/data
+    - KNOWN_PEERS=peer1:5000,peer2:5000,peer3:5000,peer4:5000,peer5:5000,peer6:5000,peer7:5000,peer8:5000,peer9:5000
+    - SELF_ID=peer10:5000
+    - ISP=isp_a
+    - REGION=region_a
+    - PEER_MODE=${PEER_MODE:-NAIVE}
+    volumes:
+    - ./data_peer10:/app/data
+    ports:
+    - 5010:5000
+    networks:
+    - p2p_net
+networks:
+  p2p_net:
+    driver: bridge

@@ -1,0 +1,26 @@
+# Se hai montato la directory data nel container
+# SONO NEL CONTAINER, HO IL FILE SALVATO IN DATA E VOGLIO CARICARLO SULLA RETE
+# Upload
+curl -X POST -H "Content-Type: application/json" \
+  -d '{"filename": "/app/data/test_file_large.txt"}' \
+  http://localhost:5000/store_file
+
+curl -X POST -H "Content-Type: application/json" -d "{\"filename\": \"/app/data/test_file_large.txt\"}" http://localhost:5000/store_file
+
+
+# Download
+curl -X POST -H "Content-Type: application/json" \
+  -d '{"filename": "file.txt"}' \
+  http://localhost:5000/fetch_file
+
+curl -X POST -H "Content-Type: application/json"   -d '{"filename": "test_file_large.txt"}'   http://localhost:5000/fetch_file
+
+# Togli peer dalla rete 
+curl -X POST http://localhost:5000/shutdown
+
+# Ferma tutti i container attivi
+docker stop $(docker ps -q)
+
+Topic: Distributed P2P File System
+
+Short Description: A decentralized BitTorrent-like system using a DHT for peer and data management, with a Tkinter GUI to monitor, add, and remove peers in real time.
