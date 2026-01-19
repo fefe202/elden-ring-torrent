@@ -40,4 +40,6 @@ Stai usando Flask (HTTP/1.1) per trasferire Chunk binari. Per file piccoli (1MB)
 
 Valutazione: Per un progetto universitario va benissimo HTTP. Non cambiarlo. Ma nel report, nella sezione "Performance Analysis", scrivi che il collo di bottiglia è il protocollo HTTP e che un'implementazione industriale userebbe gRPC o TCP raw. Dimostra consapevolezza.
 
+E. GUI con funzionalità tipo ricerca da mostrare nella demo
 
+F. Capire cosa poter mostrare facilmente della p4p e farci qualche benchmark per confronto
