@@ -16,7 +16,7 @@ class SemanticPeer(NaivePeer):
     - Partition Key: Si usa 'genre' per decidere il nodo responsabile.
     """
 
-    def upload_file(self, filepath, metadata=None):
+    def upload_file(self, filepath, metadata=None, simulate_content=False):
         """
         Upload che forza la co-locazione dei dati.
         """
@@ -35,7 +35,13 @@ class SemanticPeer(NaivePeer):
         print(f"[SemanticPeer] 📦 Placement: '{partition_key}' -> {primary_node}")
 
         # 2. Split del file
-        chunks = self.storage.split_file(filepath)
+        if simulate_content:
+            size_mb = metadata.get("size_mb", 1)
+            chunks = list(self._generate_dummy_chunks(size_mb))
+            # Nota: _generate_dummy_chunks è ereditato da NaivePeer
+        else:
+            chunks = self.storage.split_file(filepath)
+        
         chunks_info = []
 
         # 3. Distribuzione Chunk (TUTTI VERSO LO STESSO NODO)

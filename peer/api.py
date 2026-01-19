@@ -28,8 +28,10 @@ def store_file():
         filepath = body.get("filename")
         metadata = body.get("metadata", {})
 
+        simulate_content = body.get("simulate_content", False)
+
         # Polimorfismo: chiama il metodo della classe specifica in uso
-        result = peer_instance.upload_file(filepath, metadata)
+        result = peer_instance.upload_file(filepath, metadata, simulate_content=simulate_content)
 
         status_code = 200 if result.get("status") != "failed" else 400
         return jsonify(result), status_code

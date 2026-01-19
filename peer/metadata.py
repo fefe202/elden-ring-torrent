@@ -19,10 +19,10 @@ class MetadataPeer(NaivePeer):
     # Esempio: "actor:brad pitt" viene diviso in ...:0, ...:1, ...:2
     INDEX_SHARDS = 3 
 
-    def upload_file(self, filepath, metadata=None):
+    def upload_file(self, filepath, metadata=None, simulate_content=False):
         # 1. Upload Chunk (Storage Fisico) - Usa logica Naive (Hash del contenuto)
         #    Questo garantisce che i dati pesanti siano perfettamente bilanciati.
-        result = super().upload_file(filepath, metadata)
+        result = super().upload_file(filepath, metadata, simulate_content=simulate_content)
 
         if result.get("status") != "stored":
             return result

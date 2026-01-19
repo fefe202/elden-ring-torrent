@@ -35,7 +35,7 @@ class BasePeer:
     # METODI ASTRATTI (Da implementare nei figli)
     # ==========================================
 
-    def upload_file(self, filepath, metadata=None):
+    def upload_file(self, filepath, metadata=None, simulate_content=False):
         """
         Ogni strategia (Naive, Metadata, P4P) gestisce l'upload in modo diverso.
         - Naive: Solo chunks + manifest.

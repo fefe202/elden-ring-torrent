@@ -18,18 +18,27 @@ class NaivePeer(BasePeer):
       Non usa indici distribuiti.
     """
 
-    def upload_file(self, filepath, metadata=None):
+    def upload_file(self, filepath, metadata=None, simulate_content=False):
         """
         Carica un file nella rete:
         1. Split del file in chunk.
         2. Distribuzione dei chunk ai nodi responsabili (DHT).
         3. Creazione e distribuzione del Manifest (replicato su k nodi).
         """
-        if not os.path.exists(filepath):
+        if not simulate_content and not os.path.exists(filepath):
             return {"error": "file inesistente", "status": "failed"}
 
         # 1. Preparazione Chunk
-        chunks = self.storage.split_file(filepath)
+        if simulate_content:
+            # Genera chunk fittizi basati sui metadati (es. size_mb)
+            size_mb = metadata.get("size_mb", 1) if metadata else 1
+            chunks = list(self._generate_dummy_chunks(size_mb))
+            # Calcolo dimensione simulata
+            file_size = size_mb * 1024 * 1024
+        else:
+            chunks = self.storage.split_file(filepath)
+            file_size = os.path.getsize(filepath)
+
         peers_map = {}
         chunks_info = []
 
@@ -51,7 +60,7 @@ class NaivePeer(BasePeer):
             "filename": os.path.basename(filepath),
             "chunks": chunks_info,
             "metadata": metadata or {},
-            "size": os.path.getsize(filepath),
+            "size": file_size,
             "updated_at": time.time()  # <--- LWW: Timestamp (UTC float)
         }
 
@@ -198,6 +207,22 @@ class NaivePeer(BasePeer):
                 self._repair_manifests()
             except Exception as e:
                 print(f"[Anti-Entropy] ⚠️ Error in loop: {e}")
+
+    def _generate_dummy_chunks(self, size_mb):
+        """Genera chunk randomici per simulare il carico."""
+        num_chunks = int(size_mb) # Assumiamo 1MB per chunk (vedi storage.CHUNK_SIZE)
+        if num_chunks < 1: num_chunks = 1
+        
+        for i in range(num_chunks):
+            # Crea dati random (per evitare compressioni o dedup banali se ci fossero)
+            # data = os.urandom(1024 * 1024) # Troppo lento per benchmark massivi
+            # Usa dati ripetuti ma unici per chunk (veloce)
+            prefix = f"chunk_{i}".encode()
+            padding = b'x' * (1024 * 1024 - len(prefix))
+            data = prefix + padding
+            
+            chunk_hash = hashlib.sha1(data).hexdigest()
+            yield (i, chunk_hash, data)
 
     # --- Helper Methods ---
 
