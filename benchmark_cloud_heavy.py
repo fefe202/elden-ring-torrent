@@ -12,20 +12,20 @@ import sys
 # 🌩️ CONFIGURAZIONE CLOUD MASSIVE (HEAVY WORKLOAD)
 # ==============================================================================
 
-# Generazione Automatica dei 20 Peer Ibridi (4 Worker x 5 Container)
+# Generazione Automatica dei 30 Peer Ibridi (5 Worker x 6 Container)
 PEERS = []
-for w in range(1, 5): # worker-1 to worker-4
-    for p in range(1, 6): # port 5001 to 5005 (mappate su 5000 interne)
+for w in range(1, 6): # worker-1 to worker-5
+    for p in range(1, 7): # port 5001 to 5005 (mappate su 5000 interne)
         # Nota: Usiamo la porta esterna mappata dallo script startup-hybrid.sh
         PEERS.append(f"worker-{w}:{5000+p}")
 
 OUTPUT_FILE = "benchmark_cloud_results.json"
 
-# --- Parametri di Carico (SCALING REALISTICO) ---
-NUM_FILES = 500         # Carico sostanzioso per riempire la DHT/Indici
-SEARCH_QUERIES = 1000   # Abbastanza alto per avere code (P99) statisticamente valide
-WARMUP_QUERIES = 50     # Query a vuoto per scaldare TCP e Cache
-WAIT_AFTER_UPLOAD = 45  # Tempo per la convergenza del Gossip e indicizzazione
+# --- Parametri di Carico (SCALING MASSIVO GOOGLE CLOUD) ---
+NUM_FILES = 5000         # 10x: Carico pesante per riempire DHT e testare lo storage
+SEARCH_QUERIES = 5000    # 5x: Stress test prolungato per code e concorrenza
+WARMUP_QUERIES = 200     # Più warmup per stabilizzare il routing su larga scala
+WAIT_AFTER_UPLOAD = 60   # Tempo extra per la convergenza Gossip con tanti file
 
 # --- Timeout ---
 CONN_TIMEOUT = 5        # Timeout connessione
@@ -264,10 +264,12 @@ def run_cloud_benchmark(mode_label):
         "search_latencies": search_lat,
         "metrics": metrics
     }
+
+    dynamic_filename = f"benchmark_results_{mode_label}.json"
     
-    with open(OUTPUT_FILE, "w") as f:
+    with open(dynamic_filename, "w") as f:
         json.dump(results, f, indent=2)
-    print(f"\n💾 Dati salvati in {OUTPUT_FILE}")
+    print(f"\n💾 Dati salvati in {dynamic_filename}")
 
 if __name__ == "__main__":
     # In Cloud, lanciamo una modalità alla volta basandoci su come abbiamo avviato le VM

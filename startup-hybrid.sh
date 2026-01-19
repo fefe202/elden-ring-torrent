@@ -2,8 +2,8 @@
 
 # --- CONFIGURAZIONE ---
 REPO_URL="https://github.com/fefe202/elden-ring-torrent.git"
-CONTAINERS_PER_VM=5
-TOTAL_WORKERS=4
+CONTAINERS_PER_VM=6
+TOTAL_WORKERS=5
 # ----------------------
 
 # Logghiamo tutto
