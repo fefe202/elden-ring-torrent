@@ -49,6 +49,8 @@ def calculate_gini(data):
         height += value
         area += height - value / 2.
     fair_area = height * len(data) / 2.
+    if fair_area == 0:
+        return 0
     return (fair_area - area) / fair_area
 
 def get_percentile(data, percentile):
