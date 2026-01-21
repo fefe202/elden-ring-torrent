@@ -71,7 +71,7 @@ class TestPartialSearch(unittest.TestCase):
         self.assertTrue(response["partial_result"], "Should be partial because 'dead' node failed")
         self.assertEqual(len(response["results"]), 1, "Should have 1 result from 'alive' node")
         self.assertEqual(response["results"][0]["filename"], "B.txt")
-        print("\n✅ NaivePeer Partial Search Passed")
+        print("\nNaivePeer Partial Search Passed")
 
     def test_metadata_partial_availability(self):
         """
@@ -99,14 +99,14 @@ class TestPartialSearch(unittest.TestCase):
         p._fetch_remote_index.side_effect = fetch_side_effect
         
         # Execute Search
-        # Note: We need a query that triggers scatter-gather
+        # We trigger a query that requires scatter-gather
         response = p.search({"genre": "action"})
         
         # Verify
         self.assertTrue(response["partial_result"], "Should be partial because Shard 1 failed")
         self.assertGreaterEqual(len(response["results"]), 1, "Should have results from Shard 0")
         self.assertEqual(response["results"][0]["filename"], "Shard0_File.txt")
-        print("\n✅ MetadataPeer Partial Search Passed")
+        print("\nMetadataPeer Partial Search Passed")
 
 if __name__ == '__main__':
     unittest.main()

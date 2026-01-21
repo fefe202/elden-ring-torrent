@@ -1,0 +1,65 @@
+{
+  "filename": "bench_leg_4.bin",
+  "chunks": [
+    {
+      "hash": "1fdac1ab5d353192b66edae982e324e7eda63986",
+      "peers": [
+        "peer1_p4p:5000",
+        "peer3_p4p:5000",
+        "peer4_p4p:5000",
+        "peer5_p4p:5000",
+        "peer6_p4p:5000",
+        "peer7_p4p:5000"
+      ]
+    },
+    {
+      "hash": "c59fc50928f3138d229f943c855cd24803624d82",
+      "peers": [
+        "peer1_p4p:5000",
+        "peer3_p4p:5000",
+        "peer4_p4p:5000",
+        "peer5_p4p:5000",
+        "peer6_p4p:5000",
+        "peer7_p4p:5000"
+      ]
+    },
+    {
+      "hash": "2aa3223f0aa433a425dc00bd8349e3274761d7e4",
+      "peers": [
+        "peer1_p4p:5000",
+        "peer3_p4p:5000",
+        "peer4_p4p:5000",
+        "peer5_p4p:5000",
+        "peer6_p4p:5000",
+        "peer7_p4p:5000"
+      ]
+    },
+    {
+      "hash": "818ba41cb5de1af45dde0c687732513c2f5ae528",
+      "peers": [
+        "peer1_p4p:5000",
+        "peer3_p4p:5000",
+        "peer4_p4p:5000",
+        "peer5_p4p:5000",
+        "peer6_p4p:5000",
+        "peer7_p4p:5000"
+      ]
+    },
+    {
+      "hash": "0470a29111e009858b27b4c5764632dc7f776443",
+      "peers": [
+        "peer1_p4p:5000",
+        "peer3_p4p:5000",
+        "peer4_p4p:5000",
+        "peer5_p4p:5000",
+        "peer6_p4p:5000",
+        "peer7_p4p:5000"
+      ]
+    }
+  ],
+  "metadata": {
+    "simulated": true
+  },
+  "size": 5242880,
+  "updated_at": 1768920060.7394054
+}

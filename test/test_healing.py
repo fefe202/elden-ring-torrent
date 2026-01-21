@@ -12,7 +12,7 @@ FILE_NAME = "healing_test_doc.txt"
 def get_manifest_locations(filename):
     """Chiede a tutti i peer chi ha il manifest del file"""
     locations = []
-    print(f"   🔎 Scansione rete per '{filename}'...")
+    print(f"Scansione rete per '{filename}'...")
     for p in PEERS:
         try:
             # Timeout breve, se un nodo è giù non deve bloccarci
@@ -30,16 +30,16 @@ def kill_peer(peer_addr):
     peer_num = port - 5000
     container_name = f"peer{peer_num}"
     
-    print(f"   💣 KILLING {container_name} ({peer_addr})...")
+    print(f"Killing {container_name} ({peer_addr})...")
     subprocess.run(f"docker stop {container_name}", shell=True, stdout=subprocess.DEVNULL)
     return container_name
 
 def main():
-    print("🛡️  TEST: ANTI-ENTROPY & SELF HEALING")
+    print("=== TEST: ANTI-ENTROPY & SELF HEALING ===")
     print("=======================================")
 
     # 1. Caricamento File
-    print("1️⃣  Upload file iniziale...")
+    print("Upload file iniziale...")
     upload_peer = PEERS[0]
     # Aggiungiamo 'genre' per supportare anche SemanticPeer adeguatamente
     r = requests.post(f"http://{upload_peer}/store_file", json={
@@ -48,17 +48,17 @@ def main():
     })
     
     if r.status_code != 200:
-        print("❌ Upload fallito. Test interrotto.")
+        print("Upload fallito. Test interrotto.")
         sys.exit(1)
     
     time.sleep(2) # Attesa propagazione iniziale
     
     # 2. Verifica Repliche Iniziali
     locs_init = get_manifest_locations(FILE_NAME)
-    print(f"   ✅ Copie trovate su: {locs_init}")
+    print(f"Copie trovate su: {locs_init}")
     
     if len(locs_init) < 3:
-        print(f"⚠️ Warning: Ci aspettavamo 3 repliche, ne abbiamo {len(locs_init)}. Continuo comunque.")
+        print(f"Warning: Ci aspettavamo 3 repliche, ne abbiamo {len(locs_init)}. Continuo comunque.")
 
     # 3. Identificazione della Vittima
     # Dobbiamo uccidere un nodo che HA il file, ma NON è quello che stiamo usando per il test script
@@ -70,11 +70,11 @@ def main():
             break
             
     if not victim:
-        print("❌ Impossibile trovare una vittima valida.")
+        print("Impossibile trovare una vittima valida.")
         sys.exit(1)
 
     # 4. Sabotaggio
-    print(f"\n2️⃣  Simulazione Guasto su {victim}...")
+    print(f"Simulazione Guasto su {victim}...")
     container_name = kill_peer(victim)
     
     # Rimuoviamo la vittima dalla lista PEERS per non interrogarla più
@@ -85,7 +85,7 @@ def main():
     # Anti-entropy sleep = 20-40s (random)
     # Usiamo un ciclo di polling invece di sleep fisso
     max_wait = 90
-    print(f"\n3️⃣  Attesa Self-Healing (Polling fino a {max_wait}s)...")
+    print(f"\n Attesa Self-Healing (Polling fino a {max_wait}s)...")
     
     start_time = time.time()
     healed = False
@@ -94,7 +94,7 @@ def main():
 
     while time.time() - start_time < max_wait:
         elasped = int(time.time() - start_time)
-        print(f"   ⏳ {elasped}s... verifico repliche...", end="\r")
+        print(f"Attesa Self-Healing ({elasped}s)...", end="\r")
         
         current_locs = get_manifest_locations(FILE_NAME)
         # Filtra la vittima se risponde ancora (caching?)
@@ -116,21 +116,21 @@ def main():
     print("\n")
     
     # 6. Risultati Finali
-    print("4️⃣  Verifica post-guasto...")
+    print("Verifica post-guasto...")
     if not locs_final: locs_final = get_manifest_locations(FILE_NAME)
 
-    print(f"   🔍 Repliche attuali: {locs_final}")
+    print(f"Repliche attuali: {locs_final}")
     
     if healed:
-        print(f"\n🎉 SUCCESS! Il sistema ha creato nuove repliche su: {new_nodes}")
-        print("   Il protocollo Anti-Entropy ha rilevato la perdita e riparato il file.")
+        print(f"SUCCESS! Il sistema ha creato nuove repliche su: {new_nodes}")
+        print("Il protocollo Anti-Entropy ha rilevato la perdita e riparato il file.")
     elif len(locs_final) < 3:
-        print(f"\n❌ FAIL! Il sistema ha {len(locs_final)} repliche. Non ha riparato il danno dopo {max_wait}s.")
+        print(f"FAIL! Il sistema ha {len(locs_final)} repliche. Non ha riparato il danno dopo {max_wait}s.")
     else:
-        print("\n⚠️  INCONCLUSIVE. Il numero di repliche è stabile ma non vedo nuovi nodi distinti. (Forse la vittima non era essenziale?)")
+        print("INCONCLUSIVE. Il numero di repliche è stabile ma non vedo nuovi nodi distinti. (Forse la vittima non era essenziale?)")
 
     # Cleanup: riavvia il nodo morto per non rompere altri test
-    print(f"\n♻️  Riavvio {container_name} per pulizia...")
+    print(f"\n Riavvio {container_name} per pulizia...")
     subprocess.run(f"docker start {container_name}", shell=True, stdout=subprocess.DEVNULL)
 
 if __name__ == "__main__":

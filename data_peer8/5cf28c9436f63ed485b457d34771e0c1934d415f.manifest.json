@@ -1,0 +1,20 @@
+{
+  "filename": "gameplay_4k.mkv",
+  "chunks": [
+    {
+      "hash": "5a14cb2b2d57406ffda4301fdfc28d30e3bf8945",
+      "peers": [
+        "peer9:5000"
+      ]
+    }
+  ],
+  "metadata": {
+    "title": "gameplay_4k.mkv",
+    "genre": "GameMedia",
+    "size": "500KB",
+    "uploader": "Peer_2",
+    "tag": "gameplay"
+  },
+  "size": 524288,
+  "updated_at": 1769015354.2198331
+}

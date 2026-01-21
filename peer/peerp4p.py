@@ -4,16 +4,20 @@ import random
 import hashlib
 import requests
 import threading
-from peer import Peer, app  # assume peer.py exposes Flask "app" and Peer class
+try:
+    from peer import Peer, app
+except ImportError:
+    from naive import NaivePeer as Peer
+    import api
+    from api import app
 from functools import lru_cache
 
-# Configuration tunables
-ALTO_TTL = 30            # seconds - cache TTL for ALTO responses
-ALTO_TOP_K = 6           # consider only top-K cheapest peers by ALTO cost before RTT probing
-ALPHA = 0.7              # weight for ALTO cost in final score
-BETA = 0.3               # weight for RTT in final score
-RTT_TIMEOUT = 0.4        # seconds for RTT probe
-RTT_PENALTY = 9999.0     # large RTT when probe fails
+ALTO_TTL = 30            
+ALTO_TOP_K = 6           
+ALPHA = 0.7              
+BETA = 0.3               
+RTT_TIMEOUT = 0.4        
+RTT_PENALTY = 9999.0
 
 class PeerP4P(Peer):
     def __init__(self, self_id, known_peers, data_dir, isp, region, itracker_url):
@@ -33,11 +37,11 @@ class PeerP4P(Peer):
         try:
             r = requests.post(f"{self.itracker_url}/register_peer", json=payload, timeout=3)
             if r.status_code == 200:
-                print(f"✅ Peer {self.self_id} registrato all’iTracker ({self.isp}, {self.region})")
+                print(f"Peer {self.self_id} registrato all’iTracker ({self.isp}, {self.region})")
             else:
-                print(f"⚠️ iTracker ha risposto con {r.status_code}: {r.text}")
+                print(f"iTracker ha risposto con {r.status_code}: {r.text}")
         except Exception as e:
-            print(f"⚠️ Errore nella registrazione all’iTracker: {e}")
+            print(f"Errore nella registrazione all’iTracker: {e}")
 
     # -------------------------
     # ALTO caching utilities
@@ -55,7 +59,6 @@ class PeerP4P(Peer):
                         self._alto_cache["cost_map"] = data.get("cost_map", {})
                         self._alto_cache["ts"] = time.time()
                 except Exception:
-                    # leave old cache if exists
                     pass
             return self._alto_cache.get("cost_map", {})
 
@@ -186,9 +189,6 @@ class PeerP4P(Peer):
         print(f"[ALTO] candidates={candidates} costs={ {p: costs.get(p) for p in candidates} } rtts={rtts} scores={scores} selected={best}")
         return best
 
-    # -------------------------
-    # override select_peer_for_chunk to use ALTO
-    # -------------------------
     def select_peer_for_chunk(self, available_peers):
         # first try ALTO-based selection
         try:
@@ -210,14 +210,6 @@ class PeerP4P(Peer):
         except Exception:
             return random.choice(available_peers)
 
-    # -------------------------
-    # upload_file and download_file remain mostly unchanged,
-    # but call select_peer_for_chunk for selection (already done in your code)
-    # -------------------------
-    # (You can keep your existing upload_file/download_file implementations that
-    #  call select_peer_for_chunk. No change needed here.)
-
-# If this module is run directly, create the PeerP4P and start Flask app from peer.py
 if __name__ == "__main__":
     # environment
     port = int(os.environ.get("PORT", 5000))
@@ -232,5 +224,18 @@ if __name__ == "__main__":
                    isp=ISP, region=REGION, itracker_url=ITRACKER_URL)
 
     print(f"Peer {SELF_ID} P4P in ascolto su {port} con KNOWN_PEERS={KNOWN_PEERS} ISP={ISP}/{REGION}")
+    
+    # Injection dependency
+    if 'api' in globals():
+        api.peer_instance = peer
+    else:
+        # If imported via 'from peer import ...', we assume 'app' or 'peer' module handles it, but maybe not?
+        # Check if 'Peer' came from 'peer' package which might have 'api' submodule
+        import sys
+        if 'peer.api' in sys.modules:
+            sys.modules['peer.api'].peer_instance = peer
+        elif 'api' in sys.modules:
+             sys.modules['api'].peer_instance = peer
+
     # start Flask app defined in peer.py (endpoints /store_chunk, /get_chunk, /fetch_file, ecc.)
     app.run(host="0.0.0.0", port=port)

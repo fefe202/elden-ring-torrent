@@ -1,0 +1,19 @@
+{
+  "filename": "simulated_movie_2.bin",
+  "chunks": [
+    {
+      "hash": "a2071843ba3fb405d9ee3b4eff52c666ed59d383",
+      "peers": [
+        "peer3_p4p:5000"
+      ]
+    }
+  ],
+  "metadata": {
+    "actor": "Brad Pitt",
+    "genre": "Sci-Fi",
+    "year": 1990,
+    "size_mb": 1
+  },
+  "size": 1048576,
+  "updated_at": 1768903764.1198845
+}

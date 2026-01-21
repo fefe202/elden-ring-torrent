@@ -1,0 +1,20 @@
+{
+  "filename": "patch_notes.txt",
+  "chunks": [
+    {
+      "hash": "8aecca98947dac2421011b44d0a0feb5839cfa79",
+      "peers": [
+        "peer1:5000"
+      ]
+    }
+  ],
+  "metadata": {
+    "title": "patch_notes.txt",
+    "genre": "GameMedia",
+    "size": "500KB",
+    "uploader": "Peer_3",
+    "tag": "patch"
+  },
+  "size": 524288,
+  "updated_at": 1769015354.4395256
+}

@@ -55,7 +55,7 @@ class BasePeer:
     # LOGICA COMUNE: Download (File Layer)
     # ==========================================
 
-    def download_file(self, filename):
+    def download_file(self, filename, strategy=None):
         """
         Il download segue la logica DHT standard per recuperare il manifest e i chunk.
         Questa logica è condivisa perché il 'Data Plane' (dove stanno i file) 
@@ -73,10 +73,12 @@ class BasePeer:
             return {"error": "manifest_not_found", "status": "failed"}
 
         # 3. Scarica i chunks elencati nel manifest
-        fetched_chunks, failed_chunks = self._fetch_chunks(manifest)
+        fetched_chunks, failed_chunks, peers_used = self._fetch_chunks(manifest, strategy=strategy)
 
         # 4. Ricostruisci il file
-        return self._rebuild_file(filename, manifest, fetched_chunks, failed_chunks)
+        result = self._rebuild_file(filename, manifest, fetched_chunks, failed_chunks)
+        result["peers_involved"] = list(peers_used)
+        return result
 
     def _fetch_manifest(self, filename, manifest_peer):
         """Helper per recuperare il JSON del manifest (locale o remoto)"""
@@ -92,10 +94,11 @@ class BasePeer:
             print(f"[Peer:{self.self_id}] Errore recupero manifest da {manifest_peer}: {e}")
         return None
 
-    def _fetch_chunks(self, manifest):
+    def _fetch_chunks(self, manifest, strategy=None):
         """Cicla sui chunk del manifest e prova a scaricarli"""
         fetched = []
         failed = []
+        peers_used = set()
         
         for chunk_info in manifest["chunks"]:
             ch_hash = chunk_info["hash"]
@@ -106,6 +109,18 @@ class BasePeer:
                 fetched.append(ch_hash)
                 continue
 
+            # Strategy-based selection (if available in subclass, e.g. PeerP4P)
+            if hasattr(self, "select_peer_for_chunk") and strategy != "random":
+                best_peer = self.select_peer_for_chunk(peers) # TODO: Pass strategy if needed inside select_peer_for_chunk
+                if best_peer:
+                    # Try best peer first, then others
+                    peers = [best_peer] + [p for p in peers if p != best_peer]
+            
+            # If strategy is explicit "random" or "legacy", we might want to shuffle or just use as is (which is roughly random if list is arbitrary)
+            if strategy == "random":
+                import random
+                random.shuffle(peers)
+
             got_it = False
             for p in peers:
                 try:
@@ -115,6 +130,7 @@ class BasePeer:
                         # Aggiorno il manifest per dire "ce l'ho anche io ora"
                         self._notify_chunk_possession(manifest["filename"], ch_hash, manifest)
                         fetched.append(ch_hash)
+                        peers_used.add(p)
                         got_it = True
                         break
                 except Exception:
@@ -123,7 +139,7 @@ class BasePeer:
             if not got_it:
                 failed.append(ch_hash)
         
-        return fetched, failed
+        return fetched, failed, peers_used
 
     def _notify_chunk_possession(self, filename, ch_hash, manifest_data):
         """Opzionale: dice al proprietario del manifest che ora ho anch'io il chunk"""

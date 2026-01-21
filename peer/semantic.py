@@ -8,12 +8,12 @@ from naive import NaivePeer
 
 class SemanticPeer(NaivePeer):
     """
-    Implementazione SEMANTIC PARTITIONING (Document Partitioning).
+    SEMANTIC PARTITIONING (Document Partitioning) implementation.
     
-    Concetto:
-    - Data Locality: Chunk, Manifest e Indici dello stesso file risiedono 
-      TUTTI sullo stesso nodo (o i suoi successori per replica).
-    - Partition Key: Si usa 'genre' per decidere il nodo responsabile.
+    Concept:
+    - Data Locality: Chunks, Manifests, and Indices of the same file reside 
+      ENTIRELY on the same node (or its replicas).
+    - Partition Key: Uses 'genre' to decide the responsible node.
     """
 
     def upload_file(self, filepath, metadata=None, simulate_content=False):
@@ -32,30 +32,30 @@ class SemanticPeer(NaivePeer):
         placement_hash = hashlib.sha1(partition_key.encode()).hexdigest()
         primary_node = self.ring.get_node(placement_hash)
         
-        print(f"[SemanticPeer] 📦 Placement: '{partition_key}' -> {primary_node}")
+        print(f"Placement: '{partition_key}' -> {primary_node}")
 
-        # 2. Split del file
+        # 2. File Split
         if simulate_content:
             size_mb = metadata.get("size_mb", 1)
             chunks = list(self._generate_dummy_chunks(size_mb))
-            # Nota: _generate_dummy_chunks è ereditato da NaivePeer
+            # _generate_dummy_chunks is inherited from NaivePeer
         else:
             chunks = self.storage.split_file(filepath)
         
         chunks_info = []
 
-        # 3. Distribuzione Chunk (TUTTI VERSO LO STESSO NODO)
-        # Nota: Qui sacrifichiamo il load balancing dello storage per la velocità di accesso.
+        # 3. Chunk Distribution (ALL TO THE SAME NODE)
+        # We sacrifice storage load balancing for access speed.
         for idx, ch_hash, data in chunks:
             chunks_info.append({"hash": ch_hash, "peers": [primary_node]})
             
-            # Invio fisico
+            # Physical transmission
             if primary_node == self.self_id:
                 self.storage.save_chunk(ch_hash, data)
             else:
                 self._send_chunk(primary_node, ch_hash, data)
 
-        # 4. Creazione Manifest
+        # 4. Manifest Creation
         manifest = {
             "filename": os.path.basename(filepath),
             "chunks": chunks_info,
@@ -63,41 +63,41 @@ class SemanticPeer(NaivePeer):
             "placement_key": partition_key
         }
 
-        # 5. Invio Manifest (Allo stesso nodo dei chunk)
+        # 5. Manifest Transmission (To the same node as chunks)
         if primary_node == self.self_id:
             self.storage.save_manifest(manifest)
-            # Indicizzazione Locale (Document Index)
+            # Local Indexing (Document Index)
             self._local_index(manifest)
         else:
             self._send_manifest(primary_node, manifest)
-            # Chiediamo al nodo remoto di indicizzarlo localmente
+            # Ask remote node to index it locally
             self._remote_index_request(primary_node, manifest)
 
         return {"status": "stored", "manifest": manifest, "strategy": "semantic_locality"}
 
     def search(self, query):
         """
-        Search ottimizzata per Partition Key.
+        Search optimized for Partition Key.
         """
-        print(f"[SemanticPeer] 🔎 Search Query: {query}")
+        print(f"Search Query: {query}")
         
-        # CASO 1: La query contiene la Partition Key (es. Genre)
-        # Possiamo andare a colpo sicuro (Routing Diretto O(1))
+        # CASE 1: Query contains Partition Key (e.g. Genre)
+        # We can go directly (Direct Routing O(1))
         if "genre" in query:
             partition_key = query["genre"].lower().strip()
             target_hash = hashlib.sha1(partition_key.encode()).hexdigest()
             target_node = self.ring.get_node(target_hash)
             
-            print(f"   -> Routing diretto verso nodo {target_node} (Key: {partition_key})")
+            print(f"   -> Direct routing to node {target_node} (Key: {partition_key})")
             return self._query_node(target_node, query)
 
-        # CASO 2: Query senza Partition Key (es. solo Actor)
-        # Dobbiamo fare Broadcast / Scatter-Gather su TUTTI i nodi.
-        # È costoso in rete, ma necessario in questa architettura.
-        print(f"   -> Broadcast Search (Manca Partition Key)")
+        # CASE 2: Query without Partition Key (e.g. only Actor)
+        # Must do Broadcast / Scatter-Gather on ALL nodes.
+        # Network expensive, but necessary in this architecture.
+        print(f"   -> Broadcast Search (No Partition Key)")
         results = []
         
-        # Parallelizziamo le richieste
+        # Parallelize requests
         with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
             futures = {executor.submit(self._query_node, p, query): p for p in self.known_peers}
             
@@ -108,41 +108,41 @@ class SemanticPeer(NaivePeer):
                 except Exception:
                     pass
         
-        # Aggiungi anche i risultati locali (se stesso)
-        local_res = self._search_local_storage(query) # Metodo ereditato da NaivePeer
+        # Add local results too (self)
+        local_res = self._search_local_storage(query) # Inherited method from NaivePeer
         results.extend(local_res)
         
         return results
 
     # ==========================
-    # Metodi Helper
+    # Helper Methods
     # ==========================
 
     def _local_index(self, manifest):
         """
-        Salva un indice locale. In questo modello, ogni nodo ha il SUO indice
-        dei file che ospita. Non c'è indice globale.
+        Saves a local index. In this model, every node has ITS OWN index
+        of the files it hosts. There is no global index.
         """
-        # In realtà, nel semantic partitioning, l'indice è implicito nei manifest locali.
-        # Il metodo _search_local_storage di NaivePeer fa già iterazione sui manifest locali.
-        # Per ottimizzare, potremmo creare un inverted index LOCALE su file,
-        # ma per ora riusare _search_local_storage va benissimo.
+        # Actually, in semantic partitioning, index is implicit in local manifests.
+        # NaivePeer's _search_local_storage method already iterates over local manifests.
+        # To optimize, we could create a LOCAL inverted index on file,
+        # but for now reusing _search_local_storage is fine.
         pass
 
     def _remote_index_request(self, target, manifest):
         """
-        In questo modello non serve inviare indici separati, 
-        perché il manifest risiede già sul target.
+        In this model, sending separate indices is not needed, 
+        because the manifest already resides on target.
         """
         pass
 
     def _query_node(self, node, query):
-        """Interroga un nodo remoto (usa l'API search_local esistente)"""
+        """Queries a remote node (uses existing search_local API)"""
         if node == self.self_id:
             return self._search_local_storage(query)
         
         try:
-            # Usiamo l'endpoint di ricerca locale che guarda solo nel disco del nodo
+            # Use local search endpoint that looks only in node's disk
             r = requests.get(f"http://{node}/search_local", params=query, timeout=2)
             if r.status_code == 200:
                 return r.json().get("results", [])
@@ -152,9 +152,9 @@ class SemanticPeer(NaivePeer):
 
     def _get_placement_key(self, manifest):
         """
-        Override per Semantic Partitioning.
-        La chiave di posizionamento è data dal 'placement_key' salvato nel manifest
-        (che corrisponde a genre o titolo).
+        Override for Semantic Partitioning.
+        Placement key is given by 'placement_key' saved in manifest
+        (which corresponds to genre or title).
         """
-        # Se non c'è placement_key, fallback su filename (comportamento safe)
+        # If no placement_key, fallback to filename (safe behavior)
         return manifest.get("placement_key", manifest["filename"])

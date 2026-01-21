@@ -1,0 +1,20 @@
+{
+  "filename": "elden_ring_trailer.mp4",
+  "chunks": [
+    {
+      "hash": "04b70e99e3270d66021e253fe6593ea860787304",
+      "peers": [
+        "peer5:5000"
+      ]
+    }
+  ],
+  "metadata": {
+    "title": "elden_ring_trailer.mp4",
+    "genre": "GameMedia",
+    "size": "500KB",
+    "uploader": "Peer_1",
+    "tag": "elden"
+  },
+  "size": 524288,
+  "updated_at": 1769015353.7557843
+}

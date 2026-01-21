@@ -8,24 +8,23 @@ import api
 try:
     from naive import NaivePeer
 except ImportError as e:
-    print(f"⚠️ Warning: NaivePeer import failed: {e}")
+    print(f"Warning: NaivePeer import failed: {e}")
     NaivePeer = None
 try:
     from metadata import MetadataPeer
 except ImportError as e:
-    print(f"⚠️ Warning: MetadataPeer import failed: {e}")
+    print(f"Warning: MetadataPeer import failed: {e}")
     MetadataPeer = None
 try:
     from semantic import SemanticPeer
 except ImportError as e:
-    print(f"⚠️ Warning: SemanticPeer import failed: {e}")
+    print(f"Warning: SemanticPeer import failed: {e}")
     SemanticPeer = None
 
 def main():
     # ==========================================
     # 1. LETTURA CONFIGURAZIONE (ENV VARS)
     # ==========================================
-    # Questi valori vengono passati dal docker-compose.yml
 
     # Flush immediato dei print per vederli nei log docker
     sys.stdout.reconfigure(line_buffering=True)
@@ -100,7 +99,7 @@ def main():
     # Collega l'oggetto Peer creato all'API Flask
     api.peer_instance = peer_obj
 
-    print(f"🚀 Server running on 0.0.0.0:{PORT}")
+    print(f"Server running on 0.0.0.0:{PORT}")
     
     # Disabilita il reloader di Flask in produzione/docker per evitare doppi avvii dei thread
     api.app.run(host="0.0.0.0", port=PORT, debug=False, use_reloader=False)

@@ -10,30 +10,30 @@ from base import BasePeer
 
 class NaivePeer(BasePeer):
     """
-    Implementazione NAIVE del protocollo P2P.
+    Naive implementation of the P2P protocol.
     
-    Caratteristiche:
-    - Upload: Distribuisce chunk tramite Consistent Hashing (DHT).
-    - Search: FLOODING. Per trovare un file, interroga tutti i peer conosciuti.
-      Non usa indici distribuiti.
+    Features:
+    - Upload: Distributes chunks via Consistent Hashing (DHT).
+    - Search: FLOODING. Queries all known peers to find a file.
+      Does not use distributed indices.
     """
 
     def upload_file(self, filepath, metadata=None, simulate_content=False):
         """
-        Carica un file nella rete:
-        1. Split del file in chunk.
-        2. Distribuzione dei chunk ai nodi responsabili (DHT).
-        3. Creazione e distribuzione del Manifest (replicato su k nodi).
+        Uploads a file to the network:
+        1. Split file into chunks.
+        2. Distribute chunks to responsible nodes (DHT).
+        3. Creation and distribution of Manifest (replicated on k nodes).
         """
         if not simulate_content and not os.path.exists(filepath):
             return {"error": "file inesistente", "status": "failed"}
 
-        # 1. Preparazione Chunk
+        # 1. Chunk Preparation
         if simulate_content:
-            # Genera chunk fittizi basati sui metadati (es. size_mb)
+            # Generate dummy chunks based on metadata (e.g. size_mb)
             size_mb = metadata.get("size_mb", 1) if metadata else 1
             chunks = list(self._generate_dummy_chunks(size_mb))
-            # Calcolo dimensione simulata
+            # Calculate simulated size
             file_size = size_mb * 1024 * 1024
         else:
             chunks = self.storage.split_file(filepath)
@@ -42,15 +42,15 @@ class NaivePeer(BasePeer):
         peers_map = {}
         chunks_info = []
 
-        # 2. Distribuzione Chunk
+        # 2. Chunk Distribution
         for idx, ch_hash, data in chunks:
             responsible_node = self.ring.get_node(ch_hash)
             peers_map[ch_hash] = responsible_node
             
-            # Info per il manifest
+            # Info for manifest
             chunks_info.append({"hash": ch_hash, "peers": [responsible_node]})
 
-            # Invio fisico del dato
+            # Physical data transmission
             if responsible_node == self.self_id:
                 self.storage.save_chunk(ch_hash, data)
             else:
@@ -61,20 +61,20 @@ class NaivePeer(BasePeer):
             "chunks": chunks_info,
             "metadata": metadata or {},
             "size": file_size,
-            "updated_at": time.time()  # <--- LWW: Timestamp (UTC float)
+            "updated_at": time.time()
         }
 
 
 
-        # 4. Distribuzione Manifest (Replication Factor = 3)
-        # Hash del filename per decidere dove mettere il manifest
+        # 4. Manifest Distribution (Replication Factor = 3)
+        # Filename hash to decide where to place manifest
         manifest_hash = hashlib.sha1(manifest["filename"].encode()).hexdigest()
         responsible_peers = self.ring.get_successors(manifest_hash, count=3)
 
         for peer_target in responsible_peers:
             if peer_target == self.self_id:
                 self.storage.save_manifest(manifest)
-                print(f"[Peer:{self.self_id}] Manifest salvato localmente")
+                print(f"[Peer:{self.self_id}] Manifest saved locally")
             else:
                 self._send_manifest(peer_target, manifest)
 
@@ -86,18 +86,18 @@ class NaivePeer(BasePeer):
 
     def search(self, query):
         """
-        Ricerca NAIVE (Flooding / Scatter-Gather).
+        NAIVE Search (Flooding / Scatter-Gather).
         
-        1. Cerca nei manifest salvati localmente.
-        2. Invia una richiesta HTTP a TUTTI i peer conosciuti.
-        3. Aggrega i risultati.
+        1. Search in locally saved manifests.
+        2. Sends HTTP request to ALL known peers.
+        3. Aggregates results.
         
-        Complexity: O(N) dove N è il numero di peer conosciuti.
+        Complexity: O(N) where N is number of known peers.
         """
         results = []
-        seen_keys = set() # Per evitare duplicati se più peer hanno lo stesso file
+        seen_keys = set() # To avoid duplicates if multiple peers have the same file
 
-        # --- STEP 1: Ricerca Locale ---
+        # --- STEP 1: Local Search ---
         local_results = self._search_local_storage(query)
         for res in local_results:
             key = f"{res['filename']}_{self.self_id}"
@@ -105,9 +105,8 @@ class NaivePeer(BasePeer):
                 results.append(res)
                 seen_keys.add(key)
 
-        # --- STEP 2: Ricerca Remota (Flooding) ---
-        # Nota: In una rete enorme questo è inefficiente.
-        # Qui interroghiamo solo i vicini (1-hop flooding).
+        # --- STEP 2: Remote Search (Flooding) ---
+        # Queries only neighbors (1-hop flooding).
         is_partial = False
         
         for peer_addr in self.known_peers:
@@ -115,15 +114,15 @@ class NaivePeer(BasePeer):
                 continue
             
             try:
-                # Chiamiamo l'endpoint specifico per la ricerca locale del vicino
-                # (Vedi api.py: /search_local)
+                # Call neighbor's specific local search endpoint
+                # (See api.py: /search_local)
                 url = f"http://{peer_addr}/search_local"
-                r = requests.get(url, params=query, timeout=2) # Timeout basso per non bloccare
+                r = requests.get(url, params=query, timeout=2) # Low timeout to avoid blocking
                 
                 if r.status_code == 200:
                     remote_data = r.json().get("results", [])
                     for item in remote_data:
-                        # Aggiungiamo l'host se manca, per sapere chi contattare
+                        # Add host if missing, to know who to contact
                         if "host" not in item:
                             item["host"] = peer_addr
                         
@@ -133,12 +132,12 @@ class NaivePeer(BasePeer):
                             results.append(item)
                             seen_keys.add(key)
             except Exception as e:
-                # Se un peer è giù durante la ricerca, lo annotiamo ma continuiamo (Partial Result)
+                # If a peer is down during search, we note it but continue (Partial Result)
                 # print(f"Peer {peer_addr} non risponde alla search: {e}")
                 is_partial = True
 
         # --- STEP 3: Conflict Resolution (LWW) ---
-        # Deduplica per filename, tenendo quello con timestamp più recente
+        # Deduplicate by filename, keeping the one with most recent timestamp
         final_results = self._resolve_conflicts(results)
         
         return {
@@ -148,14 +147,14 @@ class NaivePeer(BasePeer):
 
     def _resolve_conflicts(self, raw_results):
         """
-        Gestisce conflitti Read Repair implementando Last Write Wins (LWW).
-        1. Identifica la versione vincente (timestamp più alto).
-        2. Restituisce solo la vincente.
-        3. (Read Repair) Aggiorna in background i nodi con versioni obsolete.
+        Handles Read Repair conflicts implementing Last Write Wins (LWW).
+        1. Identifies winning version (highest timestamp).
+        2. Returns only the winner.
+        3. (Read Repair) Updates stale nodes in background.
         """
         grouped = {}
         
-        # Raggruppa per filename
+        # Group by filename
         for item in raw_results:
             fname = item["filename"]
             if fname not in grouped:
@@ -165,39 +164,39 @@ class NaivePeer(BasePeer):
         final_list = []
         
         for fname, versions in grouped.items():
-            # Trova la versione con timestamp maggiore
+            # Find version with highest timestamp
             winner = max(versions, key=lambda x: x.get("updated_at", 0))
             final_list.append(winner)
             
-            # Read Repair: Se ci sono versioni perdenti, aggiornale
+            # Read Repair: If there are losing versions, update them
             winner_ts = winner.get("updated_at", 0)
             winner_manifest = winner.get("manifest")
             
-            if not winner_manifest: continue # Non possiamo riparare senza manifest
+            if not winner_manifest: continue # Cannot repair without manifest
             
             for v in versions:
                 v_ts = v.get("updated_at", 0)
                 if v_ts < winner_ts:
                     loser_host = v.get("host")
-                    print(f"[ReadRepair] 🛠️ Found stale version on {loser_host} (ts={v_ts} < {winner_ts}). Repairing...")
-                    # Lancia repair in thread separato per non bloccare la search
+                    print(f"Found stale version on {loser_host} (ts={v_ts} < {winner_ts}). Repairing...")
+                    # Launch repair in separate thread to avoid blocking search
                     threading.Thread(target=self._send_manifest, args=(loser_host, winner_manifest)).start()
 
         return final_list
 
     def start_background_tasks(self):
-        """Override per aggiungere l'Anti-Entropy ai task base"""
+        """Override to add Anti-Entropy to base tasks"""
         super().start_background_tasks()
         
-        # Avvia il thread di riparazione
+        # Start repair thread
         t = threading.Thread(target=self.anti_entropy_loop, daemon=True)
         t.start()
         print(f"[Peer:{self.self_id}] Anti-Entropy Protocol Started")
     
     def anti_entropy_loop(self):
         """
-        Ciclo infinito che verifica la salute delle repliche.
-        Gira ogni 20-40 secondi (randomizzato per evitare sincronizzazioni globali).
+        Infinite loop checking replica health.
+        Runs every 20-40 seconds (randomized to avoid global synchronization).
         """
         while True:
             sleep_time = random.randint(20, 40)
@@ -209,14 +208,14 @@ class NaivePeer(BasePeer):
                 print(f"[Anti-Entropy] ⚠️ Error in loop: {e}")
 
     def _generate_dummy_chunks(self, size_mb):
-        """Genera chunk randomici per simulare il carico."""
-        num_chunks = int(size_mb) # Assumiamo 1MB per chunk (vedi storage.CHUNK_SIZE)
+        """Generates random chunks to simulate load."""
+        num_chunks = int(size_mb) # Assume 1MB per chunk
         if num_chunks < 1: num_chunks = 1
         
         for i in range(num_chunks):
-            # Crea dati random (per evitare compressioni o dedup banali se ci fossero)
-            # data = os.urandom(1024 * 1024) # Troppo lento per benchmark massivi
-            # Usa dati ripetuti ma unici per chunk (veloce)
+            # Create random data (to avoid trivial compression or dedup)
+            # data = os.urandom(1024 * 1024) # Too slow for massive benchmark
+            # Use repeated but unique data per chunk (fast)
             prefix = f"chunk_{i}".encode()
             padding = b'x' * (1024 * 1024 - len(prefix))
             data = prefix + padding
@@ -227,35 +226,42 @@ class NaivePeer(BasePeer):
     # --- Helper Methods ---
 
     def _send_chunk(self, target, ch_hash, data):
-        """Helper per inviare un chunk via HTTP"""
+        """Helper to send a chunk via HTTP"""
         try:
             url = f"http://{target}/store_chunk"
             requests.post(url, files={"chunk": data}, timeout=5)
         except Exception as e:
-            print(f"Errore invio chunk {ch_hash} a {target}: {e}")
+            print(f"Error sending chunk {ch_hash} to {target}: {e}")
 
     def _send_manifest(self, target, manifest):
-        """Helper per inviare un manifest via HTTP"""
+        """Helper to send a manifest via HTTP"""
         try:
             url = f"http://{target}/store_manifest"
             requests.post(url, json=manifest, timeout=3)
-            print(f"[Peer:{self.self_id}] Manifest replicato su {target}")
+            print(f"[Peer:{self.self_id}] Manifest replicated on {target}")
         except Exception as e:
-            print(f"Errore invio manifest a {target}: {e}")
+            print(f"Error sending manifest to {target}: {e}")
 
     def _search_local_storage(self, query):
         """
-        Cerca tra i manifest presenti sul disco di questo nodo.
-        Usato sia internamente da search(), sia dall'API /search_local.
+        Search among manifests present on this node's disk.
+        Used both internally by search() and by /search_local API.
         """
         matches = []
         local_manifests = self.storage.list_local_manifests()
         
         for m in local_manifests:
             metadata = m.get("metadata", {})
-            # Match: tutti i campi della query devono essere presenti e uguali (case-insensitive)
+            # Match: all query fields must be present and equal (case-insensitive)
             is_match = True
             for k, v in query.items():
+                # Special handling for filename search
+                if k == "filename":
+                    if m["filename"].lower() != str(v).lower():
+                        is_match = False
+                        break
+                    continue
+
                 meta_val = str(metadata.get(k, ""))
                 if meta_val.lower() != str(v).lower():
                     is_match = False
@@ -266,58 +272,58 @@ class NaivePeer(BasePeer):
                     "filename": m["filename"],
                     "metadata": metadata,
                     "host": self.self_id,
-                    "updated_at": m.get("updated_at", 0),  # <--- Critical for LWW
-                    "manifest": m  # Include full manifest for Read Repair
+                    "updated_at": m.get("updated_at", 0),
+                    "manifest": m
                 })
         return matches
 
     def _repair_manifests(self):
         """
-        Scansiona i file locali. Se sono io il responsabile (Primary),
-        mi assicuro che i miei Neighbor (Successors) abbiano una copia.
+        Scans local files. If I am the Primary, 
+        I ensure my Neighbors (Successors) have a copy.
         """
         local_manifests = self.storage.list_local_manifests()
         if not local_manifests:
             return
 
-        print(f"[Anti-Entropy] 🔍 Checking replication for {len(local_manifests)} files...")
+        print(f"Checking replication for {len(local_manifests)} files...")
 
         for manifest in local_manifests:
             filename = manifest["filename"]
-            # 1. HASH DI STORAGE (Come è salvato su disco)
+            # 1. STORAGE HASH (How it is saved on disk)
             manifest_hash = hashlib.sha1(filename.encode()).hexdigest()
             
-            # 2. HASH DI ROUTING (Dove deve andare)
+            # 2. ROUTING HASH (Where it should go)
             placement_key = self._get_placement_key(manifest)
             placement_hash = hashlib.sha1(placement_key.encode()).hexdigest()
             
-            # Controllo responsabilità usando l'hash di ROUTING
+            # Check responsibility using ROUTING hash
             primary_node = self.ring.get_node(placement_hash)
             
             if primary_node != self.self_id:
                 continue
 
-            # Trovo i vicini usando l'hash di ROUTING
+            # Find neighbors using ROUTING hash
             replicas = self.ring.get_successors(placement_hash, count=2)
             
             for replica in replicas:
                 if replica == self.self_id: continue 
                 
-                # CORREZIONE: Controllo esistenza usando l'hash di STORAGE!
+                # FIX: Check existence using STORAGE hash!
                 self._ensure_replica_has_file(replica, manifest, manifest_hash)
 
     def _get_placement_key(self, manifest):
         """
-        Determina la chiave usata per posizionare il file nel Ring.
-        - Naive/Metadata: usa il filename.
-        - Semantic: usa la chiave semantica (es. genre).
+        Determines key used to place file in Ring.
+        - Naive/Metadata: uses filename.
+        - Semantic: uses semantic key (e.g. genre).
         """
         return manifest["filename"]
 
     def _ensure_replica_has_file(self, target_peer, manifest, manifest_hash):
-        """Chiede al peer se ha il file. Se no, glielo manda."""
+        """Asks peer if it has the file. If not, sends it."""
         try:
-            # Chiediamo solo del manifest per ora (controllo leggero)
+            # Ask only for manifest for now (light check)
             payload = {"manifests": [manifest_hash], "chunks": []}
             
             r = requests.post(
@@ -331,16 +337,16 @@ class NaivePeer(BasePeer):
                 missing = data.get("missing_manifests", [])
                 
                 if manifest_hash in missing:
-                    print(f"[Anti-Entropy] 🚑 REPAIR: Sending '{manifest['filename']}' to {target_peer}")
-                    # Inviamo il Manifest
+                    print(f"REPAIR: Sending '{manifest['filename']}' to {target_peer}")
+                    # Send Manifest
                     self._send_manifest(target_peer, manifest)
                     
-                    # (Opzionale) Potremmo inviare anche i chunk se mancano,
-                    # ma per ora ripariamo i metadati.
-                    # Per riparare i chunk, servirebbe scorrere manifest['chunks']
-                    # e inviare quelli di cui questo nodo è responsabile.
+                    # (Optional) We could send chunks too if missing,
+                    # but for now we repair metadata.
+                    # To repair chunks, we would need to iterate manifest['chunks']
+                    # and send those this node is responsible for.
             
         except Exception as e:
-            # Se il peer è giù, il failure detector base lo rimuoverà.
-            # L'anti-entropy al prossimo giro sceglierà un nuovo successore.
+            # If the peer is down, the base failure detector will remove it.
+            # Anti-entropy will choose a new successor in the next round.
             pass

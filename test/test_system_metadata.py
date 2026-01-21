@@ -8,7 +8,7 @@ import random
 import string
 
 # -------------------------------------------------------------------
-# 🔧 CONFIGURAZIONE
+# CONFIGURATION
 # -------------------------------------------------------------------
 PEERS = [
     "localhost:5001",
@@ -20,38 +20,38 @@ PEERS = [
     "localhost:5007"
 ]
 
-# Directory locale dove creare i file dummy temporanei
+# Local directory where to create temporary dummy files
 TEST_DATA_DIR = "test_data_gen"
 
 # -------------------------------------------------------------------
-# ⚙️ GENERATORE FILE DUMMY
+# DUMMY FILE GENERATOR
 # -------------------------------------------------------------------
 def generate_dummy_file(filename, size_mb=1):
-    """Crea un file di test con contenuto casuale"""
+    """Creates a test file with random content"""
     if not os.path.exists(TEST_DATA_DIR):
         os.makedirs(TEST_DATA_DIR)
     
     filepath = os.path.join(TEST_DATA_DIR, filename)
     
-    # Se esiste già, non ricrearlo per risparmiare tempo (a meno che size non cambi)
+    # If it already exists, do not recreate it to save time (unless size changes)
     if os.path.exists(filepath):
         return filepath
 
-    print(f"🔨 Generazione file dummy '{filename}' ({size_mb} MB)...")
+    print(f"Dummy file generation '{filename}' ({size_mb} MB)...")
     with open(filepath, "wb") as f:
-        # Scrive byte casuali
+        # Writes random bytes
         f.write(os.urandom(int(size_mb * 1024 * 1024)))
     return filepath
 
 def cleanup_test_data():
-    """Rimuove i file temporanei alla fine"""
+    """Removes temporary files at the end"""
     import shutil
     if os.path.exists(TEST_DATA_DIR):
         shutil.rmtree(TEST_DATA_DIR)
-        print("🧹 Pulizia file temporanei completata.")
+        print("Temporary files cleanup completed.")
 
 # -------------------------------------------------------------------
-# ⚙️ FUNZIONI DI INTERAZIONE P2P
+# P2P INTERACTION FUNCTIONS
 # -------------------------------------------------------------------
 def hash_file(path):
     sha = hashlib.sha1()
@@ -62,27 +62,25 @@ def hash_file(path):
 
 def upload_file(peer_url, filepath, metadata=None):
     filename = os.path.basename(filepath)
-    print(f"📤 [UPLOAD] Carico '{filename}' su {peer_url}...")
+    print(f"[UPLOAD] Uploading '{filename}' to {peer_url}...")
     
-    # Percorso interno al container (simulato mappando la cartella o passando path relativo)
-    # Nota: Per far funzionare questo test con Docker, il file deve essere accessibile al container.
-    # Se usi volumi mappati, assicurati che TEST_DATA_DIR sia nel volume.
-    # PER SEMPLICITÀ IN QUESTO TEST: Assumiamo che upload legga il path locale o invii il contenuto.
-    # Ma il tuo codice attuale si aspetta un path locale al peer.
-    # Workaround per test locale: Copiamo il file nella cartella data del peer prima dell'upload
+    # Internal path to the container (simulated by mapping the folder or passing relative path)
+    # Ensure the file is accessible to the container (e.g., via mounted volumes).
+    # For this test: We verify local path or ensure content is sent.
+    # Workaround for local test: Copy file to the peer's data folder before upload
     
-    # Simuliamo che il file sia già nella cartella del peer (come nel tuo codice originale)
-    # Qui usiamo il path assoluto interno al container come facevi tu: /app/data/...
+    # We simulate that the file is already in the peer folder (as in your original code)
+    # Here we use the internal absolute path to the container as you did: /app/data/...
     internal_path = f"/app/data/{filename}"
     
-    # Trucco per il test: copiamo fisicamente il file nella cartella montata del peer
-    # Assumiamo che la cartella 'data_peer1' corrisponda a peer1 (localhost:5001)
+    # Trick for test: physically copy the file into the peer mounted folder
+    # Assume 'data_peer1' folder corresponds to peer1 (localhost:5001)
     peer_idx = PEERS.index(peer_url) + 1
     local_mount_dir = f"data_peer{peer_idx}"
     if not os.path.exists(local_mount_dir):
         os.makedirs(local_mount_dir)
     
-    # Copia file generato nella cartella del volume del peer
+    # Copy generated file into peer volume folder
     import shutil
     shutil.copy(filepath, os.path.join(local_mount_dir, filename))
     
@@ -95,16 +93,16 @@ def upload_file(peer_url, filepath, metadata=None):
         r = requests.post(f"http://{peer_url}/store_file", json=payload)
         elapsed = time.time() - start
         if r.status_code == 200:
-            print(f"   ✅ OK ({elapsed:.2f}s)")
+            print(f"   OK ({elapsed:.2f}s)")
             return r.json()
         else:
-            print(f"   ❌ Errore: {r.status_code} - {r.text}")
+            print(f"   Error: {r.status_code} - {r.text}")
     except Exception as e:
-        print(f"   ❌ Exception: {e}")
+        print(f"   Exception: {e}")
     return None
 
 def search_metadata(peer_url, query, expected_count=None):
-    print(f"🔎 [SEARCH] Query su {peer_url}: {query}")
+    print(f"Query su {peer_url}: {query}")
     start = time.time()
     try:
         r = requests.get(f"http://{peer_url}/search", params=query, timeout=5)
@@ -113,75 +111,75 @@ def search_metadata(peer_url, query, expected_count=None):
         if r.status_code == 200:
             results = r.json().get("results", [])
             count = len(results)
-            print(f"   ✅ Trovati {count} risultati in {elapsed:.2f}s")
+            print(f"Found {count} results in {elapsed:.2f}s")
             for res in results:
-                print(f"      - {res['filename']} (Host: {res.get('host', '?')})")
+                print(f"- {res['filename']} (Host: {res.get('host', '?')})")
             
             if expected_count is not None:
                 if count == expected_count:
-                    print(f"   🎯 TARGET RAGGIUNTO: Trovati esattamente {expected_count} file.")
+                    print(f"TARGET REACHED: Found exactly {expected_count} files.")
                 else:
-                    print(f"   ⚠️ WARNING: Attesi {expected_count}, trovati {count}.")
+                    print(f"WARNING: Expected {expected_count}, found {count}.")
             return results
         else:
-            print(f"   ❌ Errore HTTP {r.status_code}")
+            print(f"HTTP Error {r.status_code}")
     except Exception as e:
-        print(f"   ❌ Exception search: {e}")
+        print(f"Exception search: {e}")
     return []
 
 # -------------------------------------------------------------------
-# 🧪 SCENARI DI TEST
+# TEST SCENARIOS
 # -------------------------------------------------------------------
 
 def test_gsi_salting_stress():
     print("\n" + "="*60)
-    print("🧪 TEST 1: GSI SALTING & AGGREGATION (Hotspot Test)")
+    print("TEST 1: GSI SALTING & AGGREGATION (Hotspot Test)")
     print("="*60)
-    print("Obiettivo: Caricare 5 file con LO STESSO attore e verificare che la search li trovi tutti.")
-    print("Se il Salting funziona, le scritture sono distribuite ma la lettura le aggrega tutte.\n")
+    print("Objective: Upload 5 files with THE SAME actor and verify that search finds them all.")
+    print("If Salting works, writes are distributed but reading aggregates them all.\n")
 
     popular_actor = "Brad Pitt"
     files_to_upload = 5
     uploaded_files = []
 
-    # 1. Genera e Carica 5 file diversi
+    # 1. Generate and Upload 5 different files
     for i in range(files_to_upload):
         fname = f"movie_brad_{i}.mp4"
-        fpath = generate_dummy_file(fname, size_mb=0.1) # Piccoli per velocità
+        fpath = generate_dummy_file(fname, size_mb=0.1) # Small for speed
         
-        # Carichiamo su peer diversi a rotazione per realismo
+        # We upload to different peers in rotation for realism
         target_peer = PEERS[i % len(PEERS)]
         
         meta = {"actor": popular_actor, "id": str(i)}
         upload_file(target_peer, fpath, meta)
         uploaded_files.append(fname)
-        time.sleep(0.5) # Breve pausa per ordine log
+        time.sleep(0.5) # Short pause for log order
 
-    print("\n⏳ Attesa propagazione indici (consistency delay)...")
+    print("\nWaiting for index propagation (consistency delay)...")
     time.sleep(2)
 
     # 2. Search
-    print("\n🔍 Eseguo ricerca per l'attore 'hotspot'...")
-    # Cerchiamo da un peer che NON ha caricato nulla (es. l'ultimo)
+    print("\nPerforming search for 'hotspot' actor...")
+    # Searching from a peer that has NOT uploaded anything (e.g. the last one)
     results = search_metadata(PEERS[-1], {"actor": popular_actor}, expected_count=files_to_upload)
 
     if results and len(results) == files_to_upload:
-        print("\n✅ TEST SALTING PASSATO: Tutti i file distribuiti sono stati aggregati.")
+        print("\nSALTING TEST PASSED: All distributed files were aggregated.")
     else:
-        print("\n❌ TEST SALTING FALLITO: Alcuni file mancano all'appello.")
+        print("\nSALTING TEST FAILED: Some files are missing.")
 
 def test_multi_attribute_intersection():
     print("\n" + "="*60)
-    print("🧪 TEST 2: INTERSEZIONE METADATI (AND Logic)")
+    print("TEST 2: METADATA INTERSECTION (AND Logic)")
     print("="*60)
-    print("Obiettivo: Verificare che la ricerca filtri correttamente su più campi.")
+    print("Objective: Verify that search correctly filters on multiple fields.")
     
-    # Genera file
+    # Generate files
     f1 = generate_dummy_file("matrix.avi", 0.1)
     f2 = generate_dummy_file("john_wick.avi", 0.1)
     f3 = generate_dummy_file("notebook.avi", 0.1)
 
-    # Carica con metadati specifici
+    # Upload with specific metadata
     # File 1: Keanu + Sci-Fi
     upload_file(PEERS[0], f1, {"actor": "Keanu Reeves", "genre": "Sci-Fi"})
     # File 2: Keanu + Action
@@ -191,20 +189,20 @@ def test_multi_attribute_intersection():
     
     time.sleep(2)
 
-    print("\n--- Case A: Ricerca attributo singolo (Keanu) ---")
-    # Ci aspettiamo 2 file (Matrix e John Wick)
+    print("\n--- Case A: Single attribute search (Keanu) ---")
+    # We expect 2 files (Matrix and John Wick)
     search_metadata(PEERS[3], {"actor": "Keanu Reeves"}, expected_count=2)
 
-    print("\n--- Case B: Intersezione Corretta (Keanu AND Sci-Fi) ---")
-    # Ci aspettiamo solo Matrix
+    print("\n--- Case B: Correct Intersection (Keanu AND Sci-Fi) ---")
+    # We expect only Matrix
     res = search_metadata(PEERS[3], {"actor": "Keanu Reeves", "genre": "Sci-Fi"}, expected_count=1)
     if res and os.path.basename(res[0]['filename']) == "matrix.avi":
-        print("   ✅ Match esatto confermato (Matrix).")
+        print("   Exact match confirmed (Matrix).")
     else:
-        print(f"   ⚠️ Match errato: {res}")
+        print(f"   Incorrect match: {res}")
 
-    print("\n--- Case C: Intersezione Vuota (Keanu AND Romance) ---")
-    # Ci aspettiamo 0 risultati
+    print("\n--- Case C: Empty Intersection (Keanu AND Romance) ---")
+    # We expect 0 results
     search_metadata(PEERS[3], {"actor": "Keanu Reeves", "genre": "Romance"}, expected_count=0)
 
 

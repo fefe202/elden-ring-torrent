@@ -1,0 +1,45 @@
+{
+  "filename": "bench_p4p.bin",
+  "chunks": [
+    {
+      "hash": "72ff5f0027c5407c4b6b29100b8765f0fa5a00ec",
+      "peers": [
+        "peer1_p4p:5000",
+        "peer3_p4p:5000"
+      ]
+    },
+    {
+      "hash": "2ad9af85eb8e7f66a8f124293ba61a559d5e6ff4",
+      "peers": [
+        "peer1_p4p:5000",
+        "peer3_p4p:5000"
+      ]
+    },
+    {
+      "hash": "593527dbf47466ba13336a8944f44e01dfbc3590",
+      "peers": [
+        "peer1_p4p:5000",
+        "peer3_p4p:5000"
+      ]
+    },
+    {
+      "hash": "8a4abb2b85758156d19f9f0af1bf21238550b1ea",
+      "peers": [
+        "peer1_p4p:5000",
+        "peer3_p4p:5000"
+      ]
+    },
+    {
+      "hash": "e203f2ee3d45f6dedaa539e49690f4f4e26c481f",
+      "peers": [
+        "peer1_p4p:5000",
+        "peer3_p4p:5000"
+      ]
+    }
+  ],
+  "metadata": {
+    "simulated": true
+  },
+  "size": 5242880,
+  "updated_at": 1768861593.2535975
+}

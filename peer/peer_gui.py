@@ -10,7 +10,7 @@ import requests
 import string
 
 class PeerMonitorGUI:
-    # Temi colori moderni
+    # Modern color themes
     THEMES = {
         'dark': {
             'bg': '#121212', 'bg2': '#1e1e1e', 'bg3': '#252526',
@@ -59,12 +59,12 @@ class PeerMonitorGUI:
         self.refresh_data()
         
     def setup_styles(self):
-        """Configura stili moderni e minimalisti con hover effects"""
+        """Configures modern and minimalist styles with hover effects"""
         style = ttk.Style()
         style.theme_use('clam')
         c = self.colors
         
-        # Frame e Label base
+        # Frame and Label base
         for name in ['Main', 'Card', 'Header']:
             style.configure(f'{name}.TFrame', background=c['bg2'] if name != 'Main' else c['bg'])
         
@@ -75,7 +75,7 @@ class PeerMonitorGUI:
         style.configure('Status.TLabel', font=('Segoe UI', 10, 'bold'), 
                        foreground=c['success'], background=c['bg2'])
         
-        # Mappa stili bottoni per hover
+        # Map button styles for hover
         btn_styles = [
             ('Modern', 'accent', 'accent_hover'),
             ('Success', 'success', 'success_hover'), 
@@ -99,38 +99,38 @@ class PeerMonitorGUI:
                           focuscolor=c['bg2'],
                           padding=(15, 8))
             
-            # Mappa dinamica per hover e active
+            # Dynamic map for hover and active
             style.map(f'{btn_type}.TButton',
                      background=[('active', c[hover_key]), ('pressed', c[color_key])],
                      foreground=[('active', 'white'), ('pressed', 'white')])
         
-        # LabelFrame moderno
+        # Modern LabelFrame
         style.configure('Card.TLabelframe', background=c['bg2'], foreground=c['text'], 
                        borderwidth=1, relief='solid')
         style.configure('Card.TLabelframe.Label', font=('Segoe UI', 12, 'bold'),
                        foreground=c['text'], background=c['bg2'])
         
     def create_widgets(self):
-        """Crea interfaccia moderna e compatta"""
+        """Creates modern and compact interface"""
         c = self.colors
         
-        # Frame principale
+        # Main Frame
         main = ttk.Frame(self.root, padding="15", style='Main.TFrame')
         main.grid(row=0, column=0, sticky="nsew")
         
-        # Header con titolo e bottoni
+        # Header with title and buttons
         header = ttk.Frame(main, style='Header.TFrame', padding="15")
         header.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 15))
         
-        # Titolo
+        # Title
         title_box = ttk.Frame(header, style='Header.TFrame')
         title_box.pack(side=tk.LEFT, fill=tk.X, expand=True)
         ttk.Label(title_box, text="🌐 EldenRing Torrent", style='Title.TLabel').pack(anchor=tk.W)
         ttk.Label(title_box, text="P2P Network Monitor", style='Subtitle.TLabel').pack(anchor=tk.W, pady=(2, 0))
         
-        # Bottoni
+        # Buttons
         btn_box = ttk.Frame(header, style='Header.TFrame')
-        btn_box.pack(side=tk.RIGHT, padx=(20, 0))
+        btn_box.pack(side=tk.RIGHT, padx=0)
         
         buttons = [
             ("🌙 Theme", self.toggle_theme, 'Pink'),       # Pink for Theme
@@ -153,8 +153,20 @@ class PeerMonitorGUI:
         info_frame.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(0, 10))
         self.info_label = ttk.Label(info_frame, text="", style='Status.TLabel')
         self.info_label.pack(side=tk.LEFT)
+
+        # Search Bar moved to Info Frame (Bottom Right of header area)
+        search_box = ttk.Frame(info_frame, style='Header.TFrame')
+        search_box.pack(side=tk.RIGHT, padx=(10, 0))
         
-        # Lista peers (sinistra)
+        self.search_var = tk.StringVar()
+        search_entry = ttk.Entry(search_box, textvariable=self.search_var, font=('Segoe UI', 10), width=30)
+        search_entry.pack(side=tk.LEFT)
+        search_entry.bind('<Return>', lambda e: self.search_network())
+        
+        ttk.Button(search_box, text="🔍 Search", command=self.search_network, 
+                   style='Accent.TButton').pack(side=tk.LEFT, padx=(5, 0))
+        
+        # Peers list (left)
         left = ttk.LabelFrame(main, text="📂 Peers", padding="10", style='Card.TLabelframe')
         left.grid(row=2, column=0, sticky="nsew", padx=(0, 10))
         
@@ -165,7 +177,7 @@ class PeerMonitorGUI:
         self.peer_listbox.pack(fill=tk.BOTH, expand=True)
         self.peer_listbox.bind('<<ListboxSelect>>', self.on_peer_select)
         
-        # Dettagli peer (destra)
+        # Peer details (right)
         right = ttk.LabelFrame(main, text="📊 Details", padding="10", style='Card.TLabelframe')
         right.grid(row=2, column=1, sticky="nsew")
         
@@ -175,7 +187,7 @@ class PeerMonitorGUI:
                                                       padx=10, pady=10)
         self.details_text.pack(fill=tk.BOTH, expand=True)
         
-        # Tag per formattazione testo
+        # Text formatting tags
         tags = {
             'header': (c['accent'], 'bold', 12),
             'section': (c['text'], 'bold', 10),
@@ -190,7 +202,7 @@ class PeerMonitorGUI:
             self.details_text.tag_config(tag, foreground=fg, 
                                         font=('Consolas', size, weight if weight == 'bold' else ''))
         
-        # Configurazione griglia responsive
+        # Responsive grid configuration
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(0, weight=1)
         main.columnconfigure(0, weight=1, minsize=300)
@@ -198,7 +210,7 @@ class PeerMonitorGUI:
         main.rowconfigure(2, weight=1)
         
     def scan_peers(self):
-        """Scansiona cartelle data_peer* e raccoglie informazioni"""
+        """Scans data_peer* folders and collects information"""
         peers_data = {}
         
         for peer_dir in sorted(self.base_dir.glob('data_peer*')):
@@ -212,11 +224,11 @@ class PeerMonitorGUI:
                 'unknown': []
             }
             
-            # 1. Raccogli tutti i manifest e i loro chunk hash
+            # 1. Collect all manifests and their chunk hashes
             known_chunk_hashes = set()
             manifest_files = set()
             
-            # Prima passata: Manifests
+            # First pass: Manifests
             for file_path in peer_dir.glob('*.manifest.json'):
                 try:
                     with open(file_path, 'r', encoding='utf-8') as f:
@@ -232,7 +244,7 @@ class PeerMonitorGUI:
                 except Exception as e:
                     peer_info['unknown'].append({'hash': file_path.name, 'error': str(e)})
 
-            # 2. Seconda passata: File e Chunks
+            # Second pass: Files and Chunks
             for file_path in peer_dir.iterdir():
                 if not file_path.is_file():
                     continue
@@ -242,7 +254,7 @@ class PeerMonitorGUI:
                     continue
                     
                 if filename in known_chunk_hashes:
-                    # È un chunk conosciuto
+                    # It's a known chunk
                     found = False
                     for m in peer_info['manifests']:
                         m_data = m['data']
@@ -262,7 +274,7 @@ class PeerMonitorGUI:
                     if len(filename) == 64 and all(c in string.hexdigits for c in filename):
                         peer_info['chunks']['orphan'].append({'hash': filename})
                     else:
-                        # È un file intero
+                        # It's a whole file
                         peer_info['files'].append(filename)
             
             peers_data[peer_dir.name] = peer_info
@@ -270,7 +282,7 @@ class PeerMonitorGUI:
         return peers_data
     
     def refresh_data(self):
-        """Aggiorna dati scansionando le cartelle"""
+        """Updates data by scanning folders"""
         self.peers_data = self.scan_peers()
         self.update_peer_list()
         
@@ -283,11 +295,11 @@ class PeerMonitorGUI:
         self.info_label.config(text=f"🌐 Peers: {total_peers} | 📄 Manifests: {total_manifests} | 📦 Chunks: {total_chunks} | 📁 Files: {total_files}")
 
     def toggle_theme(self):
-        """Cambia tra tema scuro e chiaro"""
+        """Toggles between dark and light theme"""
         self.dark_mode = not self.dark_mode
         self.colors = self.THEMES['dark' if self.dark_mode else 'light']
         
-        # Ricrea interfaccia
+        # Recreates interface
         for widget in self.root.winfo_children():
             widget.destroy()
         
@@ -296,7 +308,7 @@ class PeerMonitorGUI:
         self.refresh_data()
 
     def get_peer_status(self, peer_name):
-        """Restituisce icona stato del peer"""
+        """Returns peer status icon"""
         container_name = peer_name.replace("data_", "")
         running = self.get_running_containers()
         all_containers = self.get_all_containers()
@@ -308,7 +320,7 @@ class PeerMonitorGUI:
         return "○ "  # Bianco - Not created
 
     def get_running_containers(self):
-        """Ottiene container Docker in esecuzione"""
+        """Gets running Docker containers"""
         try:
             result = subprocess.check_output(
                 ["docker", "ps", "--format", "{{.Names}}"],
@@ -319,7 +331,7 @@ class PeerMonitorGUI:
             return set()
 
     def get_all_containers(self):
-        """Ottiene tutti i container Docker"""
+        """Gets all Docker containers"""
         try:
             result = subprocess.check_output(
                 ["docker", "ps", "-a", "--format", "{{.Names}}"],
@@ -330,7 +342,7 @@ class PeerMonitorGUI:
             return set()
 
     def add_peer(self):
-        """Crea nuovo peer e lo joina alla rete"""
+        """Creates a new peer and joins it to the network"""
         try:
             existing_peers = [int(p.name.replace("data_peer", "")) 
                             for p in self.base_dir.glob("data_peer*") 
@@ -354,16 +366,16 @@ class PeerMonitorGUI:
             ]
             subprocess.check_call(cmd, stderr=subprocess.STDOUT)
 
-            messagebox.showinfo("Success", f"✅ Peer {peer_name} creato!\nPorta: {port}")
-            self.info_label.config(text=f"🟢 {peer_name} aggiunto")
+            messagebox.showinfo("Success", f"✅ Peer {peer_name} created!\nPort: {port}")
+            self.info_label.config(text=f"🟢 {peer_name} added")
             sleep(1)
             self.refresh_data()
         except Exception as e:
-            messagebox.showerror("Error", f"❌ Errore: {e}")
-            self.info_label.config(text=f"❌ Errore creazione peer")
+            messagebox.showerror("Error", f"❌ Error: {e}")
+            self.info_label.config(text=f"❌ Error creating peer")
 
     def join_existing_peer(self):
-        """Rejoin peer esistente con dati"""
+        """Rejoin existing peer with data"""
         try:
             existing_data_dirs = [p.name.replace("data_peer", "") 
                                  for p in self.base_dir.glob("data_peer*") 
@@ -374,10 +386,10 @@ class PeerMonitorGUI:
                            if f"peer{num}" not in running]
             
             if not stopped_peers:
-                messagebox.showinfo("Info", "⚠️ Nessun peer da rejoinare")
+                messagebox.showinfo("Info", "⚠️ No peer to rejoin")
                 return
             
-            # Dialog selezione peer
+            # Peer selection dialog
             dialog = tk.Toplevel(self.root)
             dialog.title("Join Peer")
             dialog.geometry("450x350")
@@ -385,7 +397,7 @@ class PeerMonitorGUI:
             
             header = ttk.Frame(dialog, style='Header.TFrame', padding="15")
             header.pack(fill=tk.X)
-            ttk.Label(header, text="🔄 Seleziona Peer", style='Title.TLabel').pack(anchor=tk.W)
+            ttk.Label(header, text="🔄 Select Peer", style='Title.TLabel').pack(anchor=tk.W)
             
             listbox = tk.Listbox(dialog, font=('Consolas', 10),
                                bg=self.colors['bg3'], fg=self.colors['text'],
@@ -400,7 +412,7 @@ class PeerMonitorGUI:
             def do_join():
                 sel = listbox.curselection()
                 if not sel:
-                    messagebox.showwarning("Warning", "Seleziona un peer")
+                    messagebox.showwarning("Warning", "Select a peer")
                     return
                 peer_num, peer_name = stopped_peers[sel[0]]
                 dialog.destroy()
@@ -410,20 +422,20 @@ class PeerMonitorGUI:
             btn_frame.pack(fill=tk.X)
             ttk.Button(btn_frame, text="✅ Join", command=do_join, 
                       style='Success.TButton').pack(side=tk.LEFT, padx=5)
-            ttk.Button(btn_frame, text="❌ Annulla", command=dialog.destroy,
+            ttk.Button(btn_frame, text="❌ Cancel", command=dialog.destroy,
                       style='Modern.TButton').pack(side=tk.LEFT)
         except Exception as e:
             messagebox.showerror("Error", f"❌ Errore: {e}")
 
     def _start_peer_container(self, peer_num, peer_name):
-        """Avvia container peer"""
+        """Starts peer container"""
         try:
             peer_data = self.base_dir / f"data_peer{peer_num}"
             port = 5000 + int(peer_num)
             
             if peer_name in self.get_all_containers():
                 subprocess.check_call(["docker", "start", peer_name])
-                messagebox.showinfo("Success", f"✅ {peer_name} riavviato!")
+                messagebox.showinfo("Success", f"✅ {peer_name} restarted!")
             else:
                 cmd = [
                     "docker", "run", "-d", "--name", peer_name,
@@ -436,16 +448,16 @@ class PeerMonitorGUI:
                     "eldenringtorrent--peer1"
                 ]
                 subprocess.check_call(cmd)
-                messagebox.showinfo("Success", f"✅ {peer_name} rejoinato!")
+                messagebox.showinfo("Success", f"✅ {peer_name} rejoined!")
             
             self.info_label.config(text=f"🟢 {peer_name} online")
             sleep(1)
             self.refresh_data()
         except Exception as e:
-            messagebox.showerror("Error", f"❌ Errore: {e}")
+            messagebox.showerror("Error", f"❌ Error: {e}")
 
     def leave_peer(self):
-        """Peer esce dalla rete (container fermato)"""
+        """Peer leaves network (container stopped)"""
         try:
             sel = self.peer_listbox.curselection()
             if not sel:
@@ -456,7 +468,7 @@ class PeerMonitorGUI:
             container_name = peer_name.replace("data_", "")
 
             if container_name not in self.get_running_containers():
-                messagebox.showinfo("Info", f"⚠️ {container_name} non è attivo")
+                messagebox.showinfo("Info", f"⚠️ {container_name} is not active")
                 return
 
             # Graceful shutdown
@@ -474,10 +486,10 @@ class PeerMonitorGUI:
             sleep(1)
             self.refresh_data()
         except Exception as e:
-            messagebox.showerror("Error", f"❌ Errore: {e}")
+            messagebox.showerror("Error", f"❌ Error: {e}")
 
     def delete_peer(self):
-        """Elimina completamente peer"""
+        """Completely deletes peer"""
         try:
             sel = self.peer_listbox.curselection()
             if not sel:
@@ -488,8 +500,8 @@ class PeerMonitorGUI:
             container_name = peer_name.replace("data_", "")
             data_dir = self.base_dir / peer_name
 
-            if not messagebox.askyesno("Conferma",
-                f"⚠️ Eliminare {container_name}?\nQuesta operazione è IRREVERSIBILE!"):
+            if not messagebox.askyesno("Confirm",
+                f"⚠️ Delete {container_name}?\nThis operation is IRREVERSIBLE!"):
                 return
 
             # Graceful shutdown
@@ -507,60 +519,185 @@ class PeerMonitorGUI:
             if data_dir.exists():
                 shutil.rmtree(data_dir)
 
-            messagebox.showinfo("Success", f"✅ {container_name} eliminato!")
-            self.info_label.config(text=f"🗑️ {container_name} eliminato")
+            messagebox.showinfo("Success", f"✅ {container_name} deleted!")
+            self.info_label.config(text=f"🗑️ {container_name} deleted")
+            sleep(1)
             sleep(1)
             self.refresh_data()
         except Exception as e:
-            messagebox.showerror("Error", f"❌ Errore: {e}")
+            messagebox.showerror("Error", f"❌ Error: {e}")
+            self.info_label.config(text=f"❌ Delete error")
+
+    def search_network(self):
+        """Search files in network by name or metadata (e.g. Brad Pitt)"""
+        query_str = self.search_var.get().strip()
+        if not query_str:
+            messagebox.showwarning("Warning", "⚠️ Enter a search term")
+            return
+
+        # Choose a random active peer to perform search
+        running_peers = list(self.get_running_containers())
+        if not running_peers:
+            messagebox.showwarning("Warning", "⚠️ No active peer to perform search")
+            return
+            
+        # Priority to a selected peer, otherwise random
+        sel = self.peer_listbox.curselection()
+        if sel:
+            peer_name = sorted(self.peers_data.keys())[sel[0]].replace("data_", "")
+            if peer_name in running_peers:
+                searcher_peer = peer_name
+            else:
+                searcher_peer = running_peers[0]
+        else:
+            searcher_peer = running_peers[0]
+
+        try:
+            peer_num = searcher_peer.replace("peer", "")
+            port = 5000 + int(peer_num)
+            
+            # Build the query. Heuristically:
+            # - If contains " ", assume generic Actor or Title
+            # - Otherwise try as generic attribute
+            # For simplicity, send everything as 'q' or try multi-field
+            # But search API accepts specific params (actor, genre, year).
+            # Do a "smart" search:
+            # If string is a number -> year
+            # Otherwise -> try actor AND genre (OR logical client side? No, API matches ALL)
+            
+            # GUI Strategy: 
+            # We will send string as 'actor' (common) or 'title' (if supported)
+            # For now support "smart" search based on content:
+            
+            params = {}
+            if query_str.isdigit() and len(query_str) == 4:
+                params["year"] = query_str
+            elif "." in query_str:
+                 # Heuristic: If it has an extension, it's likely a filename
+                params["filename"] = query_str
+            else:
+                # Default: cerca come actor (più comune nel benchmark)
+                # O potremmo implementare un "any" lato server, ma qui siamo client.
+                # Proviamo: se l'utente scrive "Action", cerchiamo genre.
+                known_genres = ["Action", "Sci-Fi", "Drama", "Comedy", "Horror", "Documentary", "Thriller", "Romance"]
+                if query_str in known_genres:
+                    params["genre"] = query_str
+                else:
+                    # Fallback: Actor
+                    params["actor"] = query_str
+            
+            self.info_label.config(text=f"🔍 Searching '{query_str}' via {searcher_peer}...")
+            self.root.update()
+            
+            # API Call
+            url = f"http://localhost:{port}/search"
+            response = requests.get(url, params=params, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                results = data.get("results", [])
+                partial = data.get("partial_result", False)
+                
+                # Display results
+                self.show_search_results(query_str, results, partial, searcher_peer)
+                self.info_label.config(text=f"✅ Found {len(results)} results")
+            else:
+                self.info_label.config(text="❌ Search failed")
+                messagebox.showerror("Error", f"Search error: {response.status_code}")
+                
+        except Exception as e:
+            messagebox.showerror("Error", f"Search exception: {e}")
+            self.info_label.config(text="❌ Search exception")
+
+    def show_search_results(self, query, results, partial, source_peer):
+        """Shows popup window with results"""
+        dialog = tk.Toplevel(self.root)
+        dialog.title(f"Search Results: {query}")
+        dialog.geometry("800x600")
+        dialog.configure(bg=self.colors['bg'])
+        
+        header = ttk.Frame(dialog, style='Header.TFrame', padding="15")
+        header.pack(fill=tk.X)
+        
+        title = f"🔍 Results for '{query}'"
+        if partial: title += " (⚠️ Partial)"
+        ttk.Label(header, text=title, style='Title.TLabel').pack(anchor=tk.W)
+        ttk.Label(header, text=f"Executed by {source_peer}", style='Subtitle.TLabel').pack(anchor=tk.W)
+        
+        # Results area
+        res_text = scrolledtext.ScrolledText(dialog, font=('Consolas', 10), wrap=tk.WORD,
+                                            bg=self.colors['bg3'], fg=self.colors['text'],
+                                            padx=10, pady=10)
+        res_text.pack(fill=tk.BOTH, expand=True, padx=15, pady=10)
+        
+        # Tags formatting
+        res_text.tag_config('title', foreground=self.colors['accent'], font=('Consolas', 11, 'bold'))
+        res_text.tag_config('meta', foreground=self.colors['text2'])
+        res_text.tag_config('host', foreground=self.colors['success'])
+        
+        if not results:
+            res_text.insert(tk.END, "No results found.")
+        else:
+            for idx, r in enumerate(results, 1):
+                fname = r.get('filename', 'Unknown')
+                host = r.get('host', 'Unknown')
+                meta = r.get('metadata', {})
+                
+                res_text.insert(tk.END, f"{idx}. {fname}\n", 'title')
+                res_text.insert(tk.END, f"   Host: {host}\n", 'host')
+                res_text.insert(tk.END, f"   Metadata: {json.dumps(meta, indent=0)}\n\n", 'meta')
+                
+        # Close btn
+        ttk.Button(dialog, text="Close", command=dialog.destroy, 
+                   style='Modern.TButton').pack(pady=10)
 
     def upload_file(self):
-        """Upload file su un peer selezionato"""
+        """Upload file to a selected peer"""
         try:
             sel = self.peer_listbox.curselection()
             if not sel:
-                messagebox.showwarning("Warning", "⚠️ Seleziona prima un peer")
+                messagebox.showwarning("Warning", "⚠️ Select a peer first")
                 return
 
             peer_name = sorted(self.peers_data.keys())[sel[0]]
             container_name = peer_name.replace("data_", "")
 
-            # Verifica se il peer è attivo
+            # Verify if peer is active
             if container_name not in self.get_running_containers():
-                messagebox.showwarning("Warning", f"⚠️ {container_name} non è attivo!\nAvvialo prima di fare upload.")
+                messagebox.showwarning("Warning", f"⚠️ {container_name} is not active!\nStart it before uploading.")
                 return
 
-            # Dialog per selezione file
+            # File selection dialog
             from tkinter import filedialog
             file_path = filedialog.askopenfilename(
-                title="Seleziona file da uploadare",
+                title="Select file to upload",
                 initialdir=str(self.base_dir)
             )
             
             if not file_path:
                 return
             
-            # Ottieni la porta del peer
+            # Get peer port
             peer_num = container_name.replace("peer", "")
             port = 5000 + int(peer_num)
             
-            # Determina il percorso del file nel container
+            # Determine file path in container
             file_path_obj = Path(file_path)
             data_dir = self.base_dir / peer_name
             dest_path = data_dir / file_path_obj.name
             
-            # Se il file è già nella cartella del peer, usa direttamente il percorso
+            # If file is already in peer folder, use path directly
             if file_path_obj.resolve() == dest_path.resolve():
                 container_path = f"/app/data/{file_path_obj.name}"
             else:
-                # Altrimenti, copia il file nella cartella del peer (se non esiste già)
+                # Otherwise, copy file to peer folder (if not exists)
                 if not dest_path.exists():
                     import shutil
                     shutil.copy2(file_path, dest_path)
-                    messagebox.showinfo("Info", f"📂 File copiato in {peer_name}")
+                    messagebox.showinfo("Info", f"📂 File copied to {peer_name}")
                 container_path = f"/app/data/{file_path_obj.name}"
             
-            # Chiamata API per store_file
+            # API Call for store_file
             url = f"http://localhost:{port}/store_file"
             payload = {"filename": container_path}
             
@@ -572,69 +709,69 @@ class PeerMonitorGUI:
             if response.status_code == 200:
                 result = response.json()
                 messagebox.showinfo("Success", 
-                    f"✅ File uploadato con successo!\n\n"
+                    f"✅ File uploaded successfully!\n\n"
                     f"Peer: {container_name}\n"
                     f"File: {file_path_obj.name}\n"
                     f"Manifest Hash: {result.get('manifest_hash', 'N/A')[:40]}...")
-                self.info_label.config(text=f"✅ Upload completato su {container_name}")
+                self.info_label.config(text=f"✅ Upload completed on {container_name}")
             else:
                 messagebox.showerror("Error", 
-                    f"❌ Errore upload!\n\n"
+                    f"❌ Upload error!\n\n"
                     f"Status: {response.status_code}\n"
-                    f"Risposta: {response.text[:200]}")
-                self.info_label.config(text=f"❌ Errore upload")
+                    f"Response: {response.text[:200]}")
+                self.info_label.config(text=f"❌ Upload error")
             
             sleep(1)
             self.refresh_data()
             
         except requests.exceptions.Timeout:
-            messagebox.showerror("Error", "❌ Timeout: il peer non risponde")
-            self.info_label.config(text=f"❌ Timeout upload")
+            messagebox.showerror("Error", "❌ Timeout: peer not responding")
+            self.info_label.config(text=f"❌ Upload timeout")
         except Exception as e:
-            messagebox.showerror("Error", f"❌ Errore: {e}")
-            self.info_label.config(text=f"❌ Errore upload")
+            messagebox.showerror("Error", f"❌ Error: {e}")
+            self.info_label.config(text=f"❌ Upload error")
 
     def download_file(self):
-        """Download file da un peer selezionato"""
+        """Download file from a selected peer"""
         try:
             sel = self.peer_listbox.curselection()
             if not sel:
-                messagebox.showwarning("Warning", "⚠️ Seleziona prima un peer")
+                messagebox.showwarning("Warning", "⚠️ Select a peer first")
                 return
 
             peer_name = sorted(self.peers_data.keys())[sel[0]]
             container_name = peer_name.replace("data_", "")
 
-            # Verifica se il peer è attivo
+            # Verify if peer is active
             if container_name not in self.get_running_containers():
-                messagebox.showwarning("Warning", f"⚠️ {container_name} non è attivo!\nAvvialo prima di fare download.")
+                messagebox.showwarning("Warning", f"⚠️ {container_name} is not active!\nStart it before downloading.")
                 return
 
             peer_info = self.peers_data[peer_name]
             
-            # Verifica se ci sono manifest disponibili
+            # Check if manifests are available
             if not peer_info['manifests']:
-                messagebox.showinfo("Info", f"⚠️ {peer_name} non ha file disponibili per il download")
+                messagebox.showinfo("Info", f"⚠️ {container_name} has no files available for download")
                 return
 
-            # Dialog per selezione file da scaricare
+            # File download selection dialog
             dialog = tk.Toplevel(self.root)
-            dialog.title(f"Download da {container_name}")
+            dialog.title(f"Download from {container_name}")
             dialog.geometry("600x400")
             dialog.configure(bg=self.colors['bg'])
             
             header = ttk.Frame(dialog, style='Header.TFrame', padding="15")
             header.pack(fill=tk.X)
-            ttk.Label(header, text=f"📥 Seleziona File da {container_name}", 
-                     style='Title.TLabel').pack(anchor=tk.W)
+            ttk.Label(header, text=f"📥 Select File from {container_name}", 
+                      style='Title.TLabel').pack(anchor=tk.W)
             
-            # Lista file disponibili
+            # Available files list
             listbox = tk.Listbox(dialog, font=('Consolas', 10),
                                bg=self.colors['bg3'], fg=self.colors['text'],
                                selectbackground=self.colors['accent'])
             listbox.pack(fill=tk.BOTH, expand=True, padx=15, pady=10)
             
-            # Popola lista con i file disponibili nella rete
+            # Populate list with files available in network
             available_files = {}
             for manifest_info in peer_info['manifests']:
                 filename = manifest_info['data'].get('filename', 'Unknown')
@@ -646,7 +783,7 @@ class PeerMonitorGUI:
             def do_download():
                 sel_idx = listbox.curselection()
                 if not sel_idx:
-                    messagebox.showwarning("Warning", "Seleziona un file")
+                    messagebox.showwarning("Warning", "Select a file")
                     return
                 
                 filename = available_files[sel_idx[0]]
@@ -657,7 +794,7 @@ class PeerMonitorGUI:
             btn_frame.pack(fill=tk.X)
             ttk.Button(btn_frame, text="✅ Download", command=do_download, 
                       style='Success.TButton').pack(side=tk.LEFT, padx=5)
-            ttk.Button(btn_frame, text="❌ Annulla", command=dialog.destroy,
+            ttk.Button(btn_frame, text="❌ Cancel", command=dialog.destroy,
                       style='Modern.TButton').pack(side=tk.LEFT)
             
         except Exception as e:
@@ -681,44 +818,44 @@ class PeerMonitorGUI:
             if response.status_code == 200:
                 result = response.json()
                 
-                # Costruisci il percorso del file scaricato
+                # Build path of downloaded file
                 peer_data_dir = self.base_dir / f"data_{container_name}"
                 downloaded_file = peer_data_dir / f"rebuilt_{filename}"
                 
                 if downloaded_file.exists():
                     messagebox.showinfo("Success", 
-                        f"✅ File scaricato con successo!\n\n"
+                        f"✅ File downloaded successfully!\n\n"
                         f"Peer: {container_name}\n"
                         f"File: {filename}\n"
-                        f"Percorso: {downloaded_file}\n"
+                        f"Path: {downloaded_file}\n"
                         f"Status: {result.get('status', 'N/A')}")
                 else:
                     messagebox.showinfo("Info", 
-                        f"✅ Download completato!\n\n"
+                        f"✅ Download completed!\n\n"
                         f"Peer: {container_name}\n"
                         f"File: {filename}\n"
-                        f"Risposta: {result}")
+                        f"Response: {result}")
                 
-                self.info_label.config(text=f"✅ Download completato: {filename}")
+                self.info_label.config(text=f"✅ Download completed: {filename}")
             else:
                 messagebox.showerror("Error", 
-                    f"❌ Errore download!\n\n"
+                    f"❌ Download error!\n\n"
                     f"Status: {response.status_code}\n"
-                    f"Risposta: {response.text[:200]}")
-                self.info_label.config(text=f"❌ Errore download")
+                    f"Response: {response.text[:200]}")
+                self.info_label.config(text=f"❌ Download error")
             
             sleep(1)
             self.refresh_data()
             
         except requests.exceptions.Timeout:
-            messagebox.showerror("Error", "❌ Timeout: il download sta richiedendo troppo tempo")
-            self.info_label.config(text=f"❌ Timeout download")
+            messagebox.showerror("Error", "❌ Timeout: download is taking too long")
+            self.info_label.config(text=f"❌ Download timeout")
         except Exception as e:
-            messagebox.showerror("Error", f"❌ Errore: {e}")
-            self.info_label.config(text=f"❌ Errore download")
+            messagebox.showerror("Error", f"❌ Error: {e}")
+            self.info_label.config(text=f"❌ Download error")
 
     def update_peer_list(self):
-        """Aggiorna lista peer"""
+        """Update peer list"""
         self.peer_listbox.delete(0, tk.END)
         
         running = self.get_running_containers()
@@ -732,29 +869,29 @@ class PeerMonitorGUI:
             
             container_name = peer_name.replace("data_", "")
             
-            # Determina lo stato e il simbolo
+            # Determine status and symbol
             if container_name in running:
-                status_symbol = "●"  # Pieno - Online
+                status_symbol = "●"  # Full - Online
                 status_text = "ON "
             elif container_name in all_containers:
-                status_symbol = "○"  # Vuoto - Offline
+                status_symbol = "○"  # Empty - Offline
                 status_text = "OFF"
             else:
-                status_symbol = "－"  # Linea - Not created
+                status_symbol = "－"  # Line - Not created
                 status_text = "N/A"
             
             display_text = f"{status_symbol} {status_text} {peer_name:<12} │ 📄 {num_manifests:>2} │ 📦 {num_chunks:>3} │ 📁 {num_files:>2}"
             self.peer_listbox.insert(tk.END, display_text)
     
     def on_peer_select(self, event):
-        """Gestisce selezione peer"""
+        """Handles peer selection"""
         sel = self.peer_listbox.curselection()
         if sel:
             peer_name = sorted(self.peers_data.keys())[sel[0]]
             self.display_peer_details(peer_name)
     
     def display_peer_details(self, peer_name):
-        """Visualizza dettagli peer con layout compatto"""
+        """Displays peer details with compact layout"""
         self.details_text.delete('1.0', tk.END)
         peer_info = self.peers_data[peer_name]
         container_name = peer_name.replace("data_", "")

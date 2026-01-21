@@ -1,0 +1,20 @@
+{
+  "filename": "soundtrack.mp3",
+  "chunks": [
+    {
+      "hash": "a9bcf6b7e7c3d288531498234fede4f18758d133",
+      "peers": [
+        "peer4:5000"
+      ]
+    }
+  ],
+  "metadata": {
+    "title": "soundtrack.mp3",
+    "genre": "GameMedia",
+    "size": "500KB",
+    "uploader": "Peer_4",
+    "tag": "soundtrack"
+  },
+  "size": 524288,
+  "updated_at": 1769015354.6270056
+}

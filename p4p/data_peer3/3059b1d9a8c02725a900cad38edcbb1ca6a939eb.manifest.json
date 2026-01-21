@@ -1,0 +1,19 @@
+{
+  "filename": "simulated_movie_0.bin",
+  "chunks": [
+    {
+      "hash": "a2071843ba3fb405d9ee3b4eff52c666ed59d383",
+      "peers": [
+        "peer3_p4p:5000"
+      ]
+    }
+  ],
+  "metadata": {
+    "actor": "IndieActor_92",
+    "genre": "Documentary",
+    "year": 2003,
+    "size_mb": 1
+  },
+  "size": 1048576,
+  "updated_at": 1768903763.9575596
+}

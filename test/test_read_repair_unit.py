@@ -79,7 +79,7 @@ class TestReadRepair(unittest.TestCase):
         
         # Should repair peer1
         self.peer._send_manifest.assert_called_once_with("peer1:5000", {"id": "v2"})
-        print("\n✅ Correctly triggered repair for peer1 (Stale v1 < v2)")
+        print("\n Correctly triggered repair for peer1 (Stale v1 < v2)")
 
     def test_conflict_multiple_files(self):
         """Scenario: Multiple files, some with conflicts."""
@@ -102,7 +102,7 @@ class TestReadRepair(unittest.TestCase):
         
         # Check Repair
         self.peer._send_manifest.assert_called_once_with("p2", {"winner": True})
-        print("\n✅ Correctly repaired B.txt on p2")
+        print("\n Correctly repaired B.txt on p2")
 
 if __name__ == '__main__':
     unittest.main()

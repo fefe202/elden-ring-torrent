@@ -22,18 +22,18 @@ def graceful_shutdown_peer(peer_name):
     }
     
     if peer_name not in peer_urls:
-        print(f"❌ Peer '{peer_name}' non riconosciuto. Usa: peer1, peer2, o peer3")
+        print(f"Peer '{peer_name}' non riconosciuto. Usa: peer1, peer2, o peer3")
         return False
     
     peer_url = peer_urls[peer_name]
     
-    print(f"🚪 Eseguendo graceful shutdown di {peer_name} ({peer_url})...")
+    print(f"Eseguendo graceful shutdown di {peer_name} ({peer_url})...")
     
     try:
         # Test connettività prima
         ping_response = requests.get(f"{peer_url}/ping", timeout=3)
         if ping_response.status_code != 200:
-            print(f"❌ {peer_name} non risponde al ping")
+            print(f"{peer_name} non risponde al ping")
             return False
         
         # Esegui graceful shutdown
@@ -41,28 +41,28 @@ def graceful_shutdown_peer(peer_name):
         
         if response.status_code == 200:
             result = response.json()
-            print(f"✅ Graceful shutdown di {peer_name} completato!")
-            print(f"   📄 Manifest ridistribuiti: {result['redistributed_manifests']}")
-            print(f"   ❌ Ridistribuzioni fallite: {result['failed_redistributions']}")
+            print(f"Graceful shutdown di {peer_name} completato!")
+            print(f"Manifest ridistribuiti: {result['redistributed_manifests']}")
+            print(f"Ridistribuzioni fallite: {result['failed_redistributions']}")
             
             if result.get('redistributed_details'):
-                print("   📤 Dettagli ridistribuzione:")
+                print("Dettagli ridistribuzione:")
                 for detail in result['redistributed_details']:
                     print(f"      • '{detail['filename']}' trasferito a {detail['new_peer']}")
             
             if result.get('failed_details'):
-                print("   ❌ Dettagli fallimenti:")
+                print("Dettagli fallimenti:")
                 for detail in result['failed_details']:
                     print(f"      • '{detail['filename']}' -> {detail['target_peer']}: {detail['error']}")
             
             return True
         else:
-            print(f"❌ Errore nel graceful shutdown: {response.status_code}")
-            print(f"   Risposta: {response.text}")
+            print(f"Errore nel graceful shutdown: {response.status_code}")
+            print(f"Risposta: {response.text}")
             return False
             
     except Exception as e:
-        print(f"❌ Errore di connessione: {e}")
+        print(f"Errore di connessione: {e}")
         return False
 
 def main():
@@ -76,9 +76,9 @@ def main():
     success = graceful_shutdown_peer(peer_name)
     
     if success:
-        print("🎉 Graceful shutdown eseguito con successo!")
+        print("Graceful shutdown eseguito con successo!")
     else:
-        print("💥 Graceful shutdown fallito!")
+        print("Graceful shutdown fallito!")
         sys.exit(1)
 
 if __name__ == "__main__":

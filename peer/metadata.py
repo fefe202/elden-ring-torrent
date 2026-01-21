@@ -36,7 +36,7 @@ class MetadataPeer(NaivePeer):
         """
         Esegue la ricerca usando Scatter-Gather sugli indici shardati.
         """
-        print(f"[MetadataPeer] 🔎 Search Query: {query}")
+        print(f"Search Query: {query}")
         if not query:
             return []
 
@@ -93,7 +93,7 @@ class MetadataPeer(NaivePeer):
             final_map = {k: final_map[k] for k in keys_to_keep}
 
         results = list(final_map.values())
-        print(f"   ✅ Risultati finali dopo intersezione: {len(results)}")
+        print(f"   Risultati finali dopo intersezione: {len(results)}")
         
         return {
             "results": results,
@@ -115,7 +115,7 @@ class MetadataPeer(NaivePeer):
             "host": self.self_id
         }
 
-        print("[MetadataPeer] 📝 Scrittura GSI...")
+        print("Scrittura GSI...")
         
         for key, value in metadata.items():
             # Gestisce liste (es. actors=["a", "b"]) o valori singoli
@@ -142,7 +142,7 @@ class MetadataPeer(NaivePeer):
                             timeout=2
                         )
                 except Exception as e:
-                    print(f"⚠️ Errore scrittura GSI su {target_node}: {e}")
+                    print(f"Errore scrittura GSI su {target_node}: {e}")
 
     def _fetch_remote_index(self, node, key):
         """Helper per scaricare un indice (locale o remoto)"""

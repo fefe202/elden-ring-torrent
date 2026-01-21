@@ -5,22 +5,22 @@ import requests
 import os
 
 # ==============================================================================
-# CONFIGURAZIONE GLOBALE
+# GLOBAL CONFIGURATION
 # ==============================================================================
 app = Flask(__name__)
 
-# Questa variabile verrà popolata da main.py all'avvio.
-# Contiene l'istanza concreta (NaivePeer, MetadataPeer, etc.)
+# Instance populated by main.py at startup
+# Contains the concrete instance (NaivePeer, MetadataPeer, etc.)
 peer_instance = None 
 
 # ==============================================================================
-# API CLIENT (Interazione Utente)
+# CLIENT API (User Interaction)
 # ==============================================================================
 
 @app.route("/store_file", methods=["POST"])
 def store_file():
     """
-    L'utente vuole caricare un file nella rete.
+    User wants to upload a file to the network.
     Payload: {"filename": "/path/to/file", "metadata": {...}}
     """
     try:
@@ -30,7 +30,7 @@ def store_file():
 
         simulate_content = body.get("simulate_content", False)
 
-        # Polimorfismo: chiama il metodo della classe specifica in uso
+        # Polymorphism: calls the method of the specific class in use
         result = peer_instance.upload_file(filepath, metadata, simulate_content=simulate_content)
 
         status_code = 200 if result.get("status") != "failed" else 400
@@ -41,15 +41,16 @@ def store_file():
 @app.route("/fetch_file", methods=["POST"])
 def fetch_file():
     """
-    L'utente vuole scaricare un file.
+    User wants to download a file.
     Payload: {"filename": "video.mp4"}
     """
     try:
         body = request.get_json(force=True)
         filename = body.get("filename")
+        strategy = body.get("strategy", None) # "legacy", "p4p", "random"
         
-        # Chiama la logica comune di download (BasePeer)
-        result = peer_instance.download_file(filename)
+        # Calls common download logic (BasePeer)
+        result = peer_instance.download_file(filename, strategy=strategy)
         
         status_code = 200 if result.get("status") in ["fetched", "stored"] else 404
         return jsonify(result), status_code
@@ -59,62 +60,62 @@ def fetch_file():
 @app.route("/search", methods=["GET"])
 def search():
     """
-    L'utente cerca file per metadata.
+    User searches for files by metadata.
     Query Params: ?actor=Brad Pitt&genre=Action
     """
     query = request.args.to_dict()
-    # Polimorfismo: 
-    # - NaivePeer farà flooding
-    # - MetadataPeer farà lookup su indice distribuito
+    # Polymorphism: 
+    # - NaivePeer will do flooding
+    # - MetadataPeer will do distributed index lookup
     search_data = peer_instance.search(query)
     
-    # Gestione strutturata (Partial Results) vs Legacy (List)
+    # Structured handling (Partial Results) vs Legacy (List)
     if isinstance(search_data, dict) and "results" in search_data:
         return jsonify(search_data)
     else:
-        # Fallback se il metodo search ritorna ancora solo una lista
+        # Fallback if search method still returns only a list
         return jsonify({"results": search_data, "partial_result": False})
 
 @app.route("/leave", methods=["POST"])
 def leave():
     """
-    Comando manuale per far uscire il peer dalla rete in modo pulito.
+    Manual command to gracefully remove peer from network.
     """
     body = request.get_json(force=True)
     req_peer_id = body.get("peer_id")
 
-    # Verifica di sicurezza basilare
+    # Basic security check
     if req_peer_id != peer_instance.self_id:
         return jsonify({"error": "Unauthorized leave request for other peer"}), 403
 
     result = peer_instance.graceful_shutdown()
     
-    # Notifica la rimozione dall'anello
+    # Notify removal from ring
     peer_instance._remove_peer(peer_instance.self_id)
     
     return jsonify(result)
 
 
 # ==============================================================================
-# API P2P (Interazione tra Peer)
+# P2P API (Peer-to-Peer Interaction)
 # ==============================================================================
 
 @app.route("/ping")
 def ping():
-    """Health check usato dal Failure Detector."""
+    """Health check used by Failure Detector."""
     return "pong", 200
 
-# --- Gestione Dati (Chunk e Manifest) ---
+# --- Data Management (Chunks and Manifests) ---
 
 @app.route("/store_chunk", methods=["POST"])
 def store_chunk():
-    """Riceve un chunk fisico da un altro peer e lo salva su disco."""
+    """Receives a physical chunk from another peer and saves it to disk."""
     f = request.files.get("chunk")
     if not f:
         return jsonify({"error": "no chunk provided"}), 400
     
     data = f.read()
-    # Calcoliamo l'hash qui per sicurezza/verifica
+    # Calculate hash here for security/verification
     ch_hash = hashlib.sha1(data).hexdigest()
     peer_instance.storage.save_chunk(ch_hash, data)
     
@@ -122,14 +123,14 @@ def store_chunk():
 
 @app.route("/store_manifest", methods=["POST"])
 def store_manifest():
-    """Riceve un manifest (JSON) da ospitare."""
+    """Receives a manifest (JSON) to host."""
     manifest = request.get_json(force=True)
     peer_instance.storage.save_manifest(manifest)
     return jsonify({"status": "manifest_saved", "filename": manifest["filename"]})
 
 @app.route("/get_chunk/<chunk_hash>")
 def get_chunk(chunk_hash):
-    """Fornisce il contenuto binario di un chunk."""
+    """Provides binary content of a chunk."""
     data = peer_instance.storage.load_chunk(chunk_hash)
     if not data:
         return jsonify({"error": "chunk_not_found"}), 404
@@ -137,7 +138,7 @@ def get_chunk(chunk_hash):
 
 @app.route("/get_manifest/<filename>")
 def get_manifest(filename):
-    """Fornisce il JSON di un manifest."""
+    """Provides JSON of a manifest."""
     manifest = peer_instance.storage.load_manifest(filename)
     if not manifest:
         return jsonify({"error": "manifest_not_found"}), 404
@@ -146,8 +147,10 @@ def get_manifest(filename):
 @app.route("/update_manifest", methods=["POST"])
 def update_manifest():
     """
-    Aggiorna un manifest esistente aggiungendo un nuovo peer che possiede un chunk.
-    Usato quando un peer scarica un chunk e vuole notificare "ce l'ho anche io".
+    """
+    Updates an existing manifest by adding a new peer that possesses a chunk.
+    Used when a peer downloads a chunk and wants to notify "I have it too".
+    """
     """
     data = request.get_json(force=True)
     filename = data.get("filename")
@@ -161,25 +164,36 @@ def update_manifest():
     else:
         return jsonify({"status": "no_change_or_error"}), 404
 
-# --- Gestione Ricerca Naive (Flooding) ---
+# --- Naive Search Management (Flooding) ---
 
 @app.route("/search_local", methods=["GET"])
 def search_local():
     """
-    API specifica per il NaivePeer (Flooding).
-    Un peer remoto ci chiede: "Hai file che corrispondono a questa query?"
+    Specific API for NaivePeer (Flooding).
+    A remote peer asks: "Do you have files matching this query?"
     """
     query = request.args.to_dict()
-    # Usiamo il metodo helper definito in NaivePeer, ma accessibile se l'istanza lo supporta.
-    # Per sicurezza, usiamo direttamente lo storage che è comune a tutti.
+    # Use helper method defined in NaivePeer, but accessible if instance supports it.
+    # For safety, use storage directly which is common to all.
     
     matches = []
     local_manifests = peer_instance.storage.list_local_manifests()
     
     for m in local_manifests:
         metadata = m.get("metadata", {})
-        # Logica di match semplice (AND logico)
-        if all(str(metadata.get(k, "")).lower() == str(v).lower() for k, v in query.items()):
+        # Simple match logic (Logical AND)
+        match = True
+        for k, v in query.items():
+            if k == "filename":
+                # Match su filename (case-insensitive)
+                if str(m["filename"]).lower() != str(v).lower():
+                    match = False
+                    break
+            elif str(metadata.get(k, "")).lower() != str(v).lower():
+                match = False
+                break
+            
+    if match:
             matches.append({
                 "filename": m["filename"],
                 "metadata": metadata,
@@ -190,22 +204,21 @@ def search_local():
             
     return jsonify({"results": matches})
 
-# --- Gestione Topologia (Join/Leave/Gossip) ---
+# --- Topology Management (Join/Leave/Gossip) ---
 
 @app.route("/join", methods=["POST"])
 def join():
-    """Un nuovo peer chiede di entrare nella rete."""
+    """A peer requests to join the network."""
     data = request.get_json(force=True)
     new_peer = data.get("peer_id")
     
     if not new_peer:
         return jsonify({"error": "missing peer_id"}), 400
 
-    # Aggiungi il peer alle strutture locali tramite il metodo thread-safe di BasePeer
+    # Add peer to local structures via BasePeer thread-safe method
     peer_instance._merge_peers([new_peer])
 
-    # Propaga l'annuncio agli altri (Best effort)
-    # (Nota: qui potremmo delegare a un metodo di peer_instance per pulizia, ma va bene anche qui)
+    # Propagate the announcement to others (Best effort)
     for p in peer_instance.known_peers:
         if p != peer_instance.self_id and p != new_peer:
             try:
@@ -217,7 +230,7 @@ def join():
 
 @app.route("/announce", methods=["POST"])
 def announce():
-    """Qualcuno ci avvisa che c'è un nuovo peer."""
+    """Notification that a peer has joined."""
     data = request.get_json(force=True)
     new_peer = data.get("peer_id")
     if new_peer:
@@ -226,7 +239,7 @@ def announce():
 
 @app.route("/announce_leave", methods=["POST"])
 def announce_leave():
-    """Qualcuno ci avvisa che un peer sta uscendo."""
+    """Notification that a peer is leaving."""
     data = request.get_json(force=True)
     leaving_peer = data.get("peer_id")
     if leaving_peer:
@@ -235,7 +248,7 @@ def announce_leave():
 
 @app.route("/update_peers", methods=["POST"])
 def update_peers():
-    """Ricezione Gossip periodico."""
+    """Periodic Gossip reception."""
     data = request.get_json(force=True)
     peers_list = data.get("peers", [])
     if peers_list:
@@ -244,17 +257,17 @@ def update_peers():
 
 @app.route("/known_peers", methods=["GET"])
 def get_known_peers():
-    """Debug/Utility: mostra chi conosciamo."""
+    """Debug/Utility: shows who we know."""
     return jsonify({"known_peers": peer_instance.known_peers})
 
 # ==========================================
-# GESTIONE GSI (Global Secondary Indexes)
+# GSI MANAGEMENT
 # ==========================================
 
 @app.route("/index/add", methods=["POST"])
 def index_add():
     """
-    Endpoint RPC: Un peer ci chiede di salvare un'entry nel nostro shard locale.
+    RPC Endpoint: A peer asks us to save an entry in our local shard.
     """
     try:
         data = request.get_json(force=True)
@@ -271,7 +284,7 @@ def index_add():
 @app.route("/index/get", methods=["GET"])
 def index_get():
     """
-    Endpoint RPC: Un peer ci chiede i dati per uno shard specifico.
+    RPC Endpoint: A peer asks us for data for a specific shard.
     """
     key = request.args.get("key") # es. "genre:sci-fi:1"
     if not key:
@@ -282,7 +295,7 @@ def index_get():
 
 @app.route("/stats", methods=["GET"])
 def stats():
-    """Restituisce metriche interne per il benchmark suite"""
+    """Returns internal metrics for benchmark suite"""
     storage_stats = peer_instance.storage.get_storage_stats()
     
     return jsonify({
@@ -293,15 +306,15 @@ def stats():
 
 @app.route("/debug/ring", methods=["GET"])
 def debug_ring():
-    """Mostra lo stato interno dell'Hash Ring"""
+    """Shows internal Hash Ring state"""
     if not peer_instance or not peer_instance.ring:
         return jsonify({"error": "Ring not initialized"})
     
-    # 1. Quanti nodi fisici conosce l'anello?
-    # Estrarre i valori unici dal dizionario ring
+    # 1. How many physical nodes does the ring know?
+    # Extract unique values from ring dictionary
     unique_nodes = list(set(peer_instance.ring.ring.values()))
     
-    # 2. Quanti punti virtuali ci sono?
+    # 2. How many virtual points are there?
     virtual_points = len(peer_instance.ring.sorted_keys)
     
     return jsonify({
@@ -315,8 +328,8 @@ def debug_ring():
 @app.route("/check_existence", methods=["POST"])
 def check_existence():
     """
-    API per Anti-Entropy.
-    Un peer ci chiede: "Hai questi chunk/manifest?"
+    API for Anti-Entropy.
+    A peer asks: "Do you have these chunks/manifests?"
     Input: {"manifests": ["hash1", "hash2"], "chunks": ["ch1", "ch2"]}
     Output: {"missing_manifests": [...], "missing_chunks": [...]}
     """
@@ -327,8 +340,8 @@ def check_existence():
     missing_m = []
     missing_c = []
     
-    # Verifica esistenza Manifest (basata su hash del filename, non contenuto)
-    # Nota: il tuo storage salva i manifest come <hash_filename>.manifest.json
+    # Check Manifest existence (based on filename hash, not content)
+    # Storage saves manifests as <hash_filename>.manifest.json
     for m_hash in manifests_to_check:
         # Ricostruiamo il path atteso
         path = peer_instance.storage._manifest_filename(m_hash).replace(".manifest.json", "")
@@ -338,7 +351,7 @@ def check_existence():
         if not os.path.exists(expected_path):
             missing_m.append(m_hash)
 
-    # Verifica esistenza Chunk
+    # Check Chunk existence
     for c_hash in chunks_to_check:
         expected_path = os.path.join(peer_instance.storage.data_dir, c_hash)
         if not os.path.exists(expected_path):

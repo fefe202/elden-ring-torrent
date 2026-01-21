@@ -39,9 +39,6 @@ class MockRing:
         unique_nodes = []
         attempts = 0
         total_virtual = len(self.sorted_keys)
-        # Scan ring until we find 'count' unique nodes distinct from primary
-        # Note: In real naive.py, get_node returns primary, get_successors returns NEXT replicats.
-        # Here we simplify.
         
         while len(unique_nodes) < count and attempts < total_virtual:
             if idx == len(self.sorted_keys): idx = 0
@@ -56,10 +53,9 @@ class MockPeer:
     def __init__(self, peer_id, all_nodes):
         self.self_id = peer_id
         self.ring = MockRing(all_nodes)
-        self.local_manifests = [] # List of dicts
+        self.local_manifests = []
 
     def _repair_manifests(self):
-        # COPY-PASTE (Simulated) from NaivePeer
         print(f"[{self.__class__.__name__}:{self.self_id}] Running repair on {len(self.local_manifests)} files...")
         repairs_triggered = 0
         for manifest in self.local_manifests:
@@ -79,7 +75,6 @@ class MockPeer:
             replicas = self.ring.get_successors(placement_hash, count=2)
             for r in replicas:
                 if r == self.self_id: continue
-                # Simulate check
                 # print(f"     -> Checking replica {r}...")
                 repairs_triggered += 1
         return repairs_triggered
@@ -118,9 +113,9 @@ def run_simulation():
     print(f"Result: Triggered {trigger_count} repairs (Expected > 0)")
     
     if trigger_count > 0:
-        print("✅ Naive Logic OK")
+        print("Naive Logic OK")
     else:
-        print("❌ Naive Logic FAILED")
+        print("Naive Logic FAILED")
 
     # Setup Semantic Scenario
     print("\n--- TEST 2: Semantic Peer Logic (BROKEN) ---")
@@ -160,9 +155,9 @@ def run_simulation():
     print(f"Result: Triggered {trigger_count} repairs (Expected > 0 for FIXED)")
     
     if trigger_count > 0:
-        print("✅ Semantic Logic WORKING (Fix Verified)")
+        print("Semantic Logic WORKING (Fix Verified)")
     else:
-        print("❌ Semantic Logic STILL BROKEN")
+        print("Semantic Logic STILL BROKEN")
 
     # Setup Metadata Scenario
     print("\n--- TEST 3: Metadata Peer Logic ---")
@@ -177,9 +172,9 @@ def run_simulation():
     print(f"Result: Triggered {trigger_count} repairs (Expected > 0)")
     
     if trigger_count > 0:
-        print("✅ Metadata Logic OK (Inherited from Naive)")
+        print("Metadata Logic OK (Inherited from Naive)")
     else:
-        print("❌ Metadata Logic FAILED")
+        print("Metadata Logic FAILED")
 
 if __name__ == "__main__":
     run_simulation()

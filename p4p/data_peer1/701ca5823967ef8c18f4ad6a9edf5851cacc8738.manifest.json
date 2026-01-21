@@ -1,0 +1,45 @@
+{
+  "filename": "bench_legacy.bin",
+  "chunks": [
+    {
+      "hash": "42906ab5e129e43b96b02c90c1908514ad63c98c",
+      "peers": [
+        "peer1_p4p:5000",
+        "peer3_p4p:5000"
+      ]
+    },
+    {
+      "hash": "e64141d8d3ff5303db1cf8162897a750c33ee732",
+      "peers": [
+        "peer1_p4p:5000",
+        "peer3_p4p:5000"
+      ]
+    },
+    {
+      "hash": "780ebd24069b7f943fbc9c34caf40bcb33c9fd56",
+      "peers": [
+        "peer1_p4p:5000",
+        "peer3_p4p:5000"
+      ]
+    },
+    {
+      "hash": "dcef650ca1d4931d417cb8967a93ee0d2fb8f984",
+      "peers": [
+        "peer1_p4p:5000",
+        "peer3_p4p:5000"
+      ]
+    },
+    {
+      "hash": "19c33b51ab70f2798658eaaaff3dd73c94b02c78",
+      "peers": [
+        "peer1_p4p:5000",
+        "peer3_p4p:5000"
+      ]
+    }
+  ],
+  "metadata": {
+    "simulated": true
+  },
+  "size": 5242880,
+  "updated_at": 1768861593.2535975
+}
